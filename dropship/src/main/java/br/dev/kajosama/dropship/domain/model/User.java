@@ -17,6 +17,8 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -55,7 +57,7 @@ public class User implements UserDetails {
     @NotBlank
     @Size(max = 64)
     @Column(nullable = false, length = 64)
-    String password;
+    private String password;
 
     @NotBlank
     @Column(name = "created_at", nullable = false)
@@ -67,7 +69,7 @@ public class User implements UserDetails {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    @NotBlank
+    @NotNull
     @Size(max = 11, min = 11)
     @Column(nullable = false, length = 11, unique = true)
     private String cpf;
@@ -80,7 +82,8 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private AccountStatus status;
 
-    @NotBlank
+    @NotNull
+    @Past
     @Column(name = "birth_date", nullable = false)
     private LocalDate birthDate;
 
