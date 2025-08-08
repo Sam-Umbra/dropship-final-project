@@ -1,17 +1,30 @@
 package br.dev.kajosama.dropship.security.jwt;
 
-import br.dev.kajosama.dropship.domain.model.User;
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
+
+import javax.crypto.SecretKey;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.SecretKey;
-import java.util.Base64;
-import java.util.Date;
-import java.util.List;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import br.dev.kajosama.dropship.domain.model.User;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.security.Keys;
 
 @Component
 public class JwtTokenUtil {
@@ -53,8 +66,8 @@ public class JwtTokenUtil {
             LOGGER.error("Invalid JWT: {}", ex.getMessage());
         } catch (UnsupportedJwtException ex) {
             LOGGER.error("Unsupported JWT: {}", ex.getMessage());
-        } catch (SignatureException ex) {
-            LOGGER.error("Invalid signature");
+        } catch (JwtException ex) {
+            LOGGER.error("JWT validation error: {}", ex.getMessage());
         }
         return false;
     }
@@ -71,7 +84,10 @@ public class JwtTokenUtil {
 
     // Recupera as roles do token
     public List<String> getRoles(String token) {
-        return parseClaims(token).get("roles", List.class);
+        ObjectMapper objMap = new ObjectMapper();
+        Set<String> rolesSet = objMap.convertValue(parseClaims(token).get("roles"), new TypeReference<Set<String>>() {
+        });
+        return new ArrayList<>(rolesSet);
     }
 
     // Método auxiliar para parsear claims

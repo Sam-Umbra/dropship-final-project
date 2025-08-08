@@ -6,12 +6,16 @@ package br.dev.kajosama.dropship.api.controllers.services;
 
 import br.dev.kajosama.dropship.domain.model.User;
 import br.dev.kajosama.dropship.domain.repositories.UserRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import br.dev.kajosama.dropship.security.entities.Role;
+import br.dev.kajosama.dropship.security.repositories.RoleRepository;
 
 /**
  *
@@ -25,11 +29,13 @@ public class UserService {
     private UserRepository userRepository;
 
     @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     // ==================== SPRING SECURITY INTEGRATION ====================
-   // @Override
-    /*
+    // @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByEmailAndDeletedAtIsNull(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
@@ -39,5 +45,24 @@ public class UserService {
 
         return user;
     }
-*/
+
+    // ==================== CRUD OPERATIONS ====================
+    /**
+     * Cria um novo usuário com senha criptografada
+     */
+    public User registerAccount(User user, String rawPassword) {
+        // Criptografa a senha
+        user.setRawPassword(passwordEncoder.encode(rawPassword));
+
+        // Role Padrão
+        Role role = roleRepository.findByName("USER")
+        .orElseThrow(() -> new RuntimeException("Role USER Not Found"));
+        user.addRole(role);
+
+        // Salva o usuário
+        User savedUser = userRepository.save(user);
+
+        return userRepository.save(savedUser);
+    }
+
 }

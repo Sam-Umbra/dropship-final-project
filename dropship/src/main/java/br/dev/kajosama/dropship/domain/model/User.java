@@ -4,6 +4,19 @@
  */
 package br.dev.kajosama.dropship.domain.model;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.validator.constraints.br.CPF;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
 import br.dev.kajosama.dropship.domain.model.enums.AccountStatus;
 import br.dev.kajosama.dropship.security.entities.Role;
 import br.dev.kajosama.dropship.security.entities.UserRole;
@@ -23,18 +36,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.validator.constraints.br.CPF;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 /**
  *
@@ -106,7 +107,6 @@ public class User implements UserDetails {
     @Column(name = "last_exit")
     private LocalDateTime lastExit;
 
-    // Otimização: FetchType.LAZY para não carregar roles desnecessariamente
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<UserRole> userRoles = new HashSet<>();
 
@@ -147,7 +147,7 @@ public class User implements UserDetails {
     public boolean isAccountNonLocked() {
         return this.status != AccountStatus.SUSPENDED
                 && this.status != AccountStatus.DELETED
-                && this.deletedAt == null; // Verificação adicional
+                && this.deletedAt == null;
     }
 
     @Override
@@ -169,7 +169,7 @@ public class User implements UserDetails {
      */
     public boolean hasRole(String roleName) {
         return userRoles.stream()
-                .anyMatch(userRole -> userRole.getRole().getName().equalsIgnoreCase(roleName));
+                .anyMatch(userRole -> userRole.getRole().getName().equalsIgnoreCase("ROLE_" + roleName));
     }
 
     /**

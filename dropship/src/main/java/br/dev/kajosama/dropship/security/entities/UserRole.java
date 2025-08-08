@@ -4,6 +4,8 @@
  */
 package br.dev.kajosama.dropship.security.entities;
 
+import java.time.LocalDateTime;
+
 import br.dev.kajosama.dropship.domain.model.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -13,7 +15,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
 
 /**
  *
@@ -22,16 +23,16 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "users_roles")
 public class UserRole {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_role_id")
     private Long id;
-    
+
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
-    
+
     @ManyToOne
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
@@ -71,7 +72,22 @@ public class UserRole {
     public void setAssignedAt(LocalDateTime assignedAt) {
         this.assignedAt = assignedAt;
     }
-    
-    
-    
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        UserRole userRole = (UserRole) o;
+        return id != null && id.equals(userRole.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return id != null ? id.hashCode() : 0;
+    }
+
 }
