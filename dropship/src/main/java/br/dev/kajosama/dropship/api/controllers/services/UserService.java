@@ -1,0 +1,43 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/springframework/Service.java to edit this template
+ */
+package br.dev.kajosama.dropship.api.controllers.services;
+
+import br.dev.kajosama.dropship.domain.model.User;
+import br.dev.kajosama.dropship.domain.repositories.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ *
+ * @author Sam_Umbra
+ */
+@Service
+@Transactional
+public class UserService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    // ==================== SPRING SECURITY INTEGRATION ====================
+   // @Override
+    /*
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        User user = userRepository.findByEmailAndDeletedAtIsNull(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+
+        // Força carregamento das roles se estiver usando LAZY
+        user.getUserRoles().size();
+
+        return user;
+    }
+*/
+}

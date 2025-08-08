@@ -5,11 +5,14 @@
 package br.dev.kajosama.dropship.domain.model;
 
 import br.dev.kajosama.dropship.domain.model.enums.AccountStatus;
+import br.dev.kajosama.dropship.security.entities.Role;
 import br.dev.kajosama.dropship.security.entities.UserRole;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -25,6 +28,9 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.validator.constraints.br.CPF;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -59,16 +65,19 @@ public class User implements UserDetails {
     @Column(nullable = false, length = 64)
     private String password;
 
-    @NotBlank
-    @Column(name = "created_at", nullable = false)
+    // Adicionar @CreationTimestamp e @UpdateTimestamp para automação
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    @CPF
     @NotNull
     @Size(max = 11, min = 11)
     @Column(nullable = false, length = 11, unique = true)
@@ -80,7 +89,8 @@ public class User implements UserDetails {
     private String phone;
 
     @Enumerated(EnumType.STRING)
-    private AccountStatus status;
+    @Column(nullable = false)
+    private AccountStatus status = AccountStatus.ACTIVE; // Valor padrão
 
     @NotNull
     @Past
@@ -96,82 +106,148 @@ public class User implements UserDetails {
     @Column(name = "last_exit")
     private LocalDateTime lastExit;
 
-    @OneToMany(mappedBy = "user")
+    // Otimização: FetchType.LAZY para não carregar roles desnecessariamente
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<UserRole> userRoles = new HashSet<>();
 
+    // ==================== SPRING SECURITY METHODS ====================
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         Set<GrantedAuthority> authorities = new HashSet<>();
-        // Converte os papéis (roles) do usuário para GrantedAuthority (e.g., ROLE_USER, ROLE_ADMIN)
         for (UserRole userRole : userRoles) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + userRole.getRole().getName()));
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + userRole.getRole().getName().toUpperCase()));
         }
         return authorities;
     }
 
     @Override
     public String getPassword() {
-        return this.password;  // Sua senha
+        return this.password;
     }
-    
-    public void setPassword(String password) {
-        BCryptPasswordEncoder bcrypt = new BCryptPasswordEncoder();
-        this.password = bcrypt.encode(password);
+
+    // MÉTODO MELHORADO para setPassword - sem instanciar encoder
+    public void setRawPassword(String rawPassword) {
+        // Este método será usado pelo service com PasswordEncoder injetado
+        // Não codifica aqui - deixa para o service fazer isso
+        this.password = rawPassword;
     }
 
     @Override
     public String getUsername() {
-        return this.email;  // Ou o campo que você usa para o nome de usuário, por exemplo, o email
+        return this.email;
     }
 
     @Override
     public boolean isAccountNonExpired() {
-        return true;  // Lógica de expiração da conta, se necessário
+        // Implementar lógica se tiver data de expiração de conta
+        return true;
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return this.status != AccountStatus.SUSPENDED;  // Depende de como você gerencia a conta do usuário
+        return this.status != AccountStatus.SUSPENDED
+                && this.status != AccountStatus.DELETED
+                && this.deletedAt == null; // Verificação adicional
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return true;  // Se você controla expiração de credenciais, defina a lógica aqui
+        // Implementar se tiver expiração de senha
+        // Exemplo: verificar se senha foi alterada há mais de X dias
+        return true;
     }
 
     @Override
     public boolean isEnabled() {
-        return this.status == AccountStatus.ACTIVE;  // Depende de como você gerencia o status da conta
+        return this.status == AccountStatus.ACTIVE
+                && this.emailVerifiedAt != null; // Só ativo se email verificado
     }
 
+    // ==================== MÉTODOS DE CONVENIÊNCIA ====================
+    /**
+     * Verifica se o usuário tem uma role específica
+     */
+    public boolean hasRole(String roleName) {
+        return userRoles.stream()
+                .anyMatch(userRole -> userRole.getRole().getName().equalsIgnoreCase(roleName));
+    }
+
+    /**
+     * Adiciona uma nova role ao usuário
+     */
+    public void addRole(Role role) {
+        UserRole userRole = new UserRole(this, role, LocalDateTime.now());
+        this.userRoles.add(userRole);
+    }
+
+    /**
+     * Remove uma role do usuário
+     */
+    public void removeRole(String roleName) {
+        userRoles.removeIf(userRole
+                -> userRole.getRole().getName().equalsIgnoreCase(roleName));
+    }
+
+    /**
+     * Marca a conta como deletada (soft delete)
+     */
+    public void markAsDeleted() {
+        this.deletedAt = LocalDateTime.now();
+        this.status = AccountStatus.DELETED;
+    }
+
+    /**
+     * Ativa a conta
+     */
+    public void activate() {
+        this.status = AccountStatus.ACTIVE;
+        this.deletedAt = null;
+    }
+
+    /**
+     * Suspende a conta
+     */
+    public void suspend() {
+        this.status = AccountStatus.SUSPENDED;
+    }
+
+    /**
+     * Marca email como verificado
+     */
+    public void verifyEmail() {
+        this.emailVerifiedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Atualiza último login
+     */
+    public void updateLastLogin() {
+        this.lastLogin = LocalDateTime.now();
+    }
+
+    /**
+     * Atualiza último logout
+     */
+    public void updateLastExit() {
+        this.lastExit = LocalDateTime.now();
+    }
+
+    // ==================== CONSTRUTORES ====================
     public User() {
+        this.createdAt = LocalDateTime.now();
+        this.status = AccountStatus.ACTIVE;
     }
 
-    public User(Long id, String name, String email, String password, LocalDateTime createdAt, LocalDateTime updatedAt, LocalDateTime deletedAt, String cpf, String phone, AccountStatus status, LocalDate birthDate, LocalDateTime emailVerifiedAt, LocalDateTime lastLogin, LocalDateTime lastExit) {
-        this.id = id;
+    public User(String name, String email, String cpf, String phone, LocalDate birthDate) {
+        this();
         this.name = name;
         this.email = email;
-        this.password = password;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.deletedAt = deletedAt;
         this.cpf = cpf;
         this.phone = phone;
-        this.status = status;
         this.birthDate = birthDate;
-        this.emailVerifiedAt = emailVerifiedAt;
-        this.lastLogin = lastLogin;
-        this.lastExit = lastExit;
     }
 
-    public LocalDateTime getLastExit() {
-        return lastExit;
-    }
-
-    public void setLastExit(LocalDateTime lastExit) {
-        this.lastExit = lastExit;
-    }
-
+    // ==================== GETTERS E SETTERS ====================
     public Long getId() {
         return id;
     }
@@ -268,6 +344,14 @@ public class User implements UserDetails {
         this.lastLogin = lastLogin;
     }
 
+    public LocalDateTime getLastExit() {
+        return lastExit;
+    }
+
+    public void setLastExit(LocalDateTime lastExit) {
+        this.lastExit = lastExit;
+    }
+
     public Set<UserRole> getUserRoles() {
         return userRoles;
     }
@@ -275,7 +359,4 @@ public class User implements UserDetails {
     public void setUserRoles(Set<UserRole> userRoles) {
         this.userRoles = userRoles;
     }
-    
-    
-
 }
