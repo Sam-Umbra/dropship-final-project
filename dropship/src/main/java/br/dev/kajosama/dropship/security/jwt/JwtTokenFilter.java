@@ -5,6 +5,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -19,16 +20,20 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.lang.NonNull;
+
 @Component
 public class JwtTokenFilter extends OncePerRequestFilter {
 
     @Autowired
     private JwtTokenUtil jwtUtil;
 
+    
+
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                   HttpServletResponse response,
-                                   FilterChain filterChain)
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                   @NonNull HttpServletResponse response,
+                                   @NonNull FilterChain filterChain)
             throws ServletException, IOException {
 
         if (!hasAuthorizationBearer(request)) {
@@ -37,7 +42,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         }
 
         String token = getAccessToken(request);
-        if (!jwtUtil.validateAccessToken(token)) {
+        if (!jwtUtil.validateToken(token)) {
             filterChain.doFilter(request, response);
             return;
         }

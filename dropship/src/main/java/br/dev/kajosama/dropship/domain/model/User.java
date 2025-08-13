@@ -159,8 +159,9 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return this.status == AccountStatus.ACTIVE
-                && this.emailVerifiedAt != null; // Só ativo se email verificado
+        /*return this.status == AccountStatus.ACTIVE
+                && this.emailVerifiedAt != null; // Só ativo se email verificado */
+                return true;
     }
 
     // ==================== MÉTODOS DE CONVENIÊNCIA ====================

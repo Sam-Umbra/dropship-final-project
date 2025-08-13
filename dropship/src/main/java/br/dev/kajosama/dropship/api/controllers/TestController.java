@@ -7,6 +7,7 @@ package br.dev.kajosama.dropship.api.controllers;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,27 +20,27 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/")
 public class TestController {
     
-    @GetMapping("/manager")
+    @GetMapping("manager")
     public Map<String, Object> privateManageEndpoint() {
-        Map<String, Object> model = new HashMap<String, Object>();
+        Map<String, Object> model = new HashMap<>();
         model.put("id", UUID.randomUUID().toString());
         model.put("content", "Manager Endpoint: Area Apenas para ADMINS!!!");
         return model;
     }
     
     // Apenas Logados podem ter acesso
-    @GetMapping("/private")
+    @GetMapping("private")
     public Map<String, Object> privateEndpoint() {
-        Map<String, Object> model = new HashMap<String, Object>();
+        Map<String, Object> model = new HashMap<>();
         model.put("id", UUID.randomUUID().toString());
         model.put("content", "Private Endpoint: Area Restrita!");
         return model;
     }
 
     // Todos podem ter acesso
-    @RequestMapping("/public")
+    @RequestMapping("public")
     public Map<String, Object> publicEndpoint() {
-        Map<String, Object> model = new HashMap<String, Object>();
+        Map<String, Object> model = new HashMap<>();
         model.put("id", UUID.randomUUID().toString());
         model.put("content", "Public Endpoint: Area Publica!");
         return model;

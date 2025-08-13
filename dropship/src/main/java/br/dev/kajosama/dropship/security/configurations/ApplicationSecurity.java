@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package br.dev.kajosama.dropship.security;
+package br.dev.kajosama.dropship.security.configurations;
 
 import br.dev.kajosama.dropship.security.jwt.JwtTokenFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -94,6 +94,7 @@ public class ApplicationSecurity {
             .authorizeHttpRequests(authz -> authz
                 // Public endpoints
                 .requestMatchers("/auth/login").permitAll()
+                .requestMatchers("/auth/refresh").permitAll()
                 .requestMatchers("/public/**").permitAll()
                 .requestMatchers("/error").permitAll()
                     

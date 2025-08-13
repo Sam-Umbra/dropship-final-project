@@ -37,7 +37,7 @@ public class UserService {
     // ==================== SPRING SECURITY INTEGRATION ====================
     // @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByEmailAndDeletedAtIsNull(username)
+        User user = userRepository.findByEmailWithRoles(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
         // Força carregamento das roles se estiver usando LAZY
