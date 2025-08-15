@@ -4,15 +4,12 @@
  */
 package br.dev.kajosama.dropship.security.configurations;
 
-import br.dev.kajosama.dropship.security.jwt.JwtTokenFilter;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,13 +27,19 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
-import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import br.dev.kajosama.dropship.security.jwt.JwtTokenFilter;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  *
@@ -103,11 +106,6 @@ public class ApplicationSecurity {
                     
                 // Role-based access
                 .requestMatchers("/manager/**").hasRole("ADMIN")
-                    
-                // User endpoints - accessible by USER and ADMIN
-                .requestMatchers(HttpMethod.GET, "/user/profile").hasAnyRole("USER", "ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/user/profile").hasAnyRole("USER", "ADMIN")
-                .requestMatchers("/user/**").hasAnyRole("USER", "ADMIN")
                     
                 // All other requests need authentication
                 .anyRequest().authenticated()

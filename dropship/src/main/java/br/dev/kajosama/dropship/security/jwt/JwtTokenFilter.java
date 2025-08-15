@@ -1,12 +1,12 @@
 package br.dev.kajosama.dropship.security.jwt;
 
-import br.dev.kajosama.dropship.domain.model.User;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -16,11 +16,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.springframework.lang.NonNull;
+import br.dev.kajosama.dropship.domain.model.User;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.security.SignatureException;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class JwtTokenFilter extends OncePerRequestFilter {
@@ -32,23 +34,40 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
-                                   @NonNull HttpServletResponse response,
-                                   @NonNull FilterChain filterChain)
+                                    @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain filterChain)
             throws ServletException, IOException {
 
         if (!hasAuthorizationBearer(request)) {
             filterChain.doFilter(request, response);
             return;
         }
-
+        
         String token = getAccessToken(request);
-        if (!jwtUtil.validateToken(token)) {
-            filterChain.doFilter(request, response);
+        
+        try {
+            if (jwtUtil.validateToken(token)) {
+                setAuthenticationContext(token, request);
+            }
+        } catch (ExpiredJwtException ex) {
+            handleInvalidToken(response, "Expired JWT token, please request a new token.", HttpStatus.UNAUTHORIZED);
+            return;
+        } catch (SignatureException ex) {
+            handleInvalidToken(response, "Token assignature invalid.", HttpStatus.UNAUTHORIZED);
+            return;
+        } catch (Exception ex) {
+            handleInvalidToken(response, "Invalid Token.", HttpStatus.UNAUTHORIZED);
             return;
         }
 
-        setAuthenticationContext(token, request);
         filterChain.doFilter(request, response);
+    }
+
+    private void handleInvalidToken(HttpServletResponse response, String message, HttpStatus status) throws IOException {
+        response.setStatus(status.value());
+        response.setContentType("application/json");
+        String jsonResponse = String.format("{\"error\": \"%s\"}", message);
+        response.getWriter().write(jsonResponse);
     }
 
     private boolean hasAuthorizationBearer(HttpServletRequest request) {

@@ -72,8 +72,8 @@ public class JwtTokenUtil {
                     .compact();
 
         } catch (InvalidKeyException e) {
-            LOGGER.error("Erro ao gerar token JWT para usuário {}: {}", user.getEmail(), e.getMessage());
-            throw new RuntimeException("Erro ao gerar token de acesso", e);
+            LOGGER.error("Error upon creating token for user {}: {}", user.getEmail(), e.getMessage());
+            throw new RuntimeException("Error upon creating token", e);
         }
     }
 
@@ -93,8 +93,8 @@ public class JwtTokenUtil {
                 .compact();
 
     } catch (InvalidKeyException e) {
-        LOGGER.error("Erro ao gerar refresh token para usuário {}: {}", user.getEmail(), e.getMessage());
-        throw new RuntimeException("Erro ao gerar refresh token", e);
+        LOGGER.error("Error upon creating refresh token for user {}: {}", user.getEmail(), e.getMessage());
+        throw new RuntimeException("Error upon creating refresh token", e);
     }
 }
 
@@ -122,8 +122,8 @@ public class JwtTokenUtil {
         try {
             return parseClaims(token).getSubject();
         } catch (Exception e) {
-            LOGGER.error("Erro ao extrair email do token: {}", e.getMessage());
-            throw new RuntimeException("Token inválido", e);
+            LOGGER.error("Error upon extracting email from token: {}", e.getMessage());
+            throw new RuntimeException("Invalid token", e);
         }
     }
 
@@ -136,8 +136,8 @@ public class JwtTokenUtil {
             }
             return parseClaims(token).get("userId", Long.class);
         } catch (Exception e) {
-            LOGGER.error("Erro ao extrair userId do token: {}", e.getMessage());
-            throw new RuntimeException("Token inválido", e);
+            LOGGER.error("Error upon extracting userId form token: {}", e.getMessage());
+            throw new RuntimeException("Invalid token", e);
         }
     }
 
@@ -145,7 +145,7 @@ public class JwtTokenUtil {
         try {
             return parseClaims(token).get("name", String.class);
         } catch (Exception e) {
-            LOGGER.error("Erro ao extrair nome do token: {}", e.getMessage());
+            LOGGER.error("Error upon extracting name from token: {}", e.getMessage());
             return null;
         }
     }
@@ -165,7 +165,7 @@ public class JwtTokenUtil {
             });
 
         } catch (IllegalArgumentException e) {
-            LOGGER.error("Erro ao extrair roles do token: {}", e.getMessage());
+            LOGGER.error("Error upon extracting roles from token: {}", e.getMessage());
             return new ArrayList<>();
         }
     }
@@ -209,8 +209,8 @@ public class JwtTokenUtil {
             byte[] keyBytes = Base64.getDecoder().decode(jwtProperties.getSecret());
             return Keys.hmacShaKeyFor(keyBytes);
         } catch (WeakKeyException e) {
-            LOGGER.error("Erro ao gerar chave secreta: {}", e.getMessage());
-            throw new RuntimeException("Configuração JWT inválida", e);
+            LOGGER.error("Error upon creating secret key: {}", e.getMessage());
+            throw new RuntimeException("Invalid JWT configuration", e);
         }
     }
 }
