@@ -66,7 +66,6 @@ public class User implements UserDetails {
     @Column(nullable = false, length = 64)
     private String password;
 
-    // Adicionar @CreationTimestamp e @UpdateTimestamp para automação
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

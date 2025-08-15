@@ -2,10 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/springframework/Service.java to edit this template
  */
-package br.dev.kajosama.dropship.api.controllers.services;
-
-import br.dev.kajosama.dropship.domain.model.User;
-import br.dev.kajosama.dropship.domain.repositories.UserRepository;
+package br.dev.kajosama.dropship.api.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,6 +11,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import br.dev.kajosama.dropship.domain.model.User;
+import br.dev.kajosama.dropship.domain.repositories.UserRepository;
 import br.dev.kajosama.dropship.security.entities.Role;
 import br.dev.kajosama.dropship.security.repositories.RoleRepository;
 
