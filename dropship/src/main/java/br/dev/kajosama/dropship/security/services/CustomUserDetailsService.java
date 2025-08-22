@@ -12,7 +12,7 @@ import br.dev.kajosama.dropship.domain.repositories.UserRepository;
 public class CustomUserDetailsService implements UserDetailsService {
 
     @Autowired
-    private UserRepository userRepository; // seu repositório JPA de users
+    private UserRepository userRepository;
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {

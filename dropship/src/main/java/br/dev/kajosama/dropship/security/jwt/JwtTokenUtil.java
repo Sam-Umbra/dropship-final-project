@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import br.dev.kajosama.dropship.domain.model.User;
 import br.dev.kajosama.dropship.security.configurations.JwtProperties;
+import br.dev.kajosama.dropship.security.services.TokenService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -41,68 +42,70 @@ public class JwtTokenUtil {
     // Corrigido: Injetar JwtProperties via construtor
     private final JwtProperties jwtProperties;
     private final ObjectMapper objectMapper;
+    private final TokenService tokenService;
 
-    public JwtTokenUtil(JwtProperties jwtProperties, ObjectMapper objectMapper) {
+    public JwtTokenUtil(JwtProperties jwtProperties, ObjectMapper objectMapper,
+    TokenService tokenService) {
         this.jwtProperties = jwtProperties;
         this.objectMapper = objectMapper;
+        this.tokenService = tokenService;
     }
 
-    // Gera o token JWT
     public String generateAccessToken(User user) {
-        try {
-            SecretKey secretKey = getSecretKey();
+        return generateToken(user, EXPIRE_DURATION, "ACCESS");
+    }
 
-            // Extrai apenas os nomes das roles (não os objetos completos)
-            List<String> roleNames = user.getUserRoles().stream()
-                    .map(userRole -> userRole.getRole().getName())
-                    .collect(Collectors.toList());
+    public String generateRefreshToken(User user) {
+        return generateToken(user, REFRESH_EXPIRE_DURATION, "REFRESH");
+    }
+
+    private String generateToken(User user, long expiration, String tokenType) {
+        try {
+            
+            SecretKey secretKey = getSecretKey();
+            Long tokenVersion = tokenService.getUserTokenVersion(user.getId());
 
             Claims claims = Jwts.claims().setSubject(user.getEmail());
             claims.put("userId", user.getId());
-            claims.put("name", user.getName());
-            claims.put("roles", roleNames); // Lista simples de strings
-            claims.put("status", user.getStatus().toString());
+            claims.put("tokenVersion", tokenVersion);
+            claims.put("tokenType", tokenType);
+            
+            if ("ACCESS".equals(tokenType)) {
+                claims.put("name", user.getName());
+                claims.put("roles", user.getUserRoles().stream()
+                    .map(userRole -> userRole.getRole().getName())
+                    .collect(Collectors.toList()));
+                claims.put("status", user.getStatus().toString());
+            }
 
             return Jwts.builder()
                     .setClaims(claims)
                     .setIssuer("DropShip-API")
                     .setIssuedAt(new Date())
-                    .setExpiration(new Date(System.currentTimeMillis() + EXPIRE_DURATION))
+                    .setExpiration(new Date(System.currentTimeMillis() + expiration))
                     .signWith(secretKey, SignatureAlgorithm.HS512)
                     .compact();
 
         } catch (InvalidKeyException e) {
-            LOGGER.error("Error upon creating token for user {}: {}", user.getEmail(), e.getMessage());
-            throw new RuntimeException("Error upon creating token", e);
+            LOGGER.error("Error creating {} token for user {}: {}", tokenType, user.getEmail(), e.getMessage());
+            throw new RuntimeException("Error creating token", e);
         }
     }
 
-    public String generateRefreshToken(User user) {
-    try {
-        SecretKey secretKey = getSecretKey();
-
-        Claims claims = Jwts.claims().setSubject(user.getEmail());
-        claims.put("userId", user.getId());
-
-        return Jwts.builder()
-                .setClaims(claims)
-                .setIssuer("DropShip-API")
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + REFRESH_EXPIRE_DURATION))
-                .signWith(secretKey, SignatureAlgorithm.HS512)
-                .compact();
-
-    } catch (InvalidKeyException e) {
-        LOGGER.error("Error upon creating refresh token for user {}: {}", user.getEmail(), e.getMessage());
-        throw new RuntimeException("Error upon creating refresh token", e);
-    }
-}
-
-    // Valida o token JWT
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(getSecretKey()).build().parseClaimsJws(token);
+            @SuppressWarnings("unused")
+            Claims claims = parseClaims(token);
+            Long userId = getUserId(token);
+            Long tokenVersion = getTokenVersion(token);
+            
+            if (!tokenService.isTokenVersionValid(userId, tokenVersion)) {
+                LOGGER.debug("Token version is invalid for user: {}", userId);
+                return false;
+            }
+
             return true;
+
         } catch (ExpiredJwtException ex) {
             LOGGER.error("JWT expired: {}", ex.getMessage());
         } catch (IllegalArgumentException ex) {
@@ -117,7 +120,17 @@ public class JwtTokenUtil {
         return false;
     }
 
-    // Recupera o e-mail do subject
+    public TokenPair refreshTokens(User user) {
+        // Increment token version to invalidate all existing tokens
+        tokenService.invalidateAllUserTokens(user.getId());
+        
+        // Generate new tokens with new version
+        String accessToken = generateAccessToken(user);
+        String refreshToken = generateRefreshToken(user);
+        
+        return new TokenPair(accessToken, refreshToken);
+    }
+
     public String getEmail(String token) {
         try {
             return parseClaims(token).getSubject();
@@ -127,7 +140,6 @@ public class JwtTokenUtil {
         }
     }
 
-    // Recupera o ID do usuário a partir da claim
     public Long getUserId(String token) {
         try {
             Object userIdClaim = parseClaims(token).get("userId");
@@ -150,7 +162,14 @@ public class JwtTokenUtil {
         }
     }
 
-    // Recupera as roles do token
+    public Long getTokenVersion(String token) {
+        Object versionClaim = parseClaims(token).get("tokenVersion");
+        if (versionClaim instanceof Integer integer) {
+            return integer.longValue();
+        }
+        return parseClaims(token).get("tokenVersion", Long.class);
+    }
+
     @SuppressWarnings("unchecked")
     public List<String> getRoles(String token) {
         try {
@@ -160,7 +179,6 @@ public class JwtTokenUtil {
                 return (List<String>) rolesObj;
             }
 
-            // Fallback para casos onde pode estar como Set ou outro tipo
             return objectMapper.convertValue(rolesObj, new TypeReference<List<String>>() {
             });
 
@@ -211,6 +229,16 @@ public class JwtTokenUtil {
         } catch (WeakKeyException e) {
             LOGGER.error("Error upon creating secret key: {}", e.getMessage());
             throw new RuntimeException("Invalid JWT configuration", e);
+        }
+    }
+
+    public static class TokenPair {
+        private String accessToken;
+        private String refreshToken;
+
+        public TokenPair(String accessToken, String refreshToken) {
+            this.accessToken = accessToken;
+            this.refreshToken = refreshToken;
         }
     }
 }

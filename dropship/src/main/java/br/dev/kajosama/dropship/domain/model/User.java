@@ -90,7 +90,7 @@ public class User implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private AccountStatus status = AccountStatus.ACTIVE; // Valor padrão
+    private AccountStatus status = AccountStatus.ACTIVE;
 
     @NotNull
     @Past
@@ -124,10 +124,7 @@ public class User implements UserDetails {
         return this.password;
     }
 
-    // MÉTODO MELHORADO para setPassword - sem instanciar encoder
     public void setRawPassword(String rawPassword) {
-        // Este método será usado pelo service com PasswordEncoder injetado
-        // Não codifica aqui - deixa para o service fazer isso
         this.password = rawPassword;
     }
 
@@ -138,7 +135,6 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonExpired() {
-        // Implementar lógica se tiver data de expiração de conta
         return true;
     }
 
@@ -151,8 +147,6 @@ public class User implements UserDetails {
 
     @Override
     public boolean isCredentialsNonExpired() {
-        // Implementar se tiver expiração de senha
-        // Exemplo: verificar se senha foi alterada há mais de X dias
         return true;
     }
 
@@ -166,6 +160,7 @@ public class User implements UserDetails {
     // ==================== MÉTODOS DE CONVENIÊNCIA ====================
     /**
      * Verifica se o usuário tem uma role específica
+     * ROLE + Nome
      */
     public boolean hasRole(String roleName) {
         return userRoles.stream()
@@ -245,6 +240,15 @@ public class User implements UserDetails {
         this.cpf = cpf;
         this.phone = phone;
         this.birthDate = birthDate;
+    }
+
+    public User(Long id, String name, String email, String password, String cpf, String phone) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.cpf = cpf;
+        this.phone = phone;
     }
 
     // ==================== GETTERS E SETTERS ====================
@@ -359,4 +363,5 @@ public class User implements UserDetails {
     public void setUserRoles(Set<UserRole> userRoles) {
         this.userRoles = userRoles;
     }
+
 }
