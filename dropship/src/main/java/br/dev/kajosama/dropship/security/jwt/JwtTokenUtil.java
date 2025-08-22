@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import br.dev.kajosama.dropship.domain.model.User;
 import br.dev.kajosama.dropship.security.configurations.JwtProperties;
+import br.dev.kajosama.dropship.security.payloads.TokenPair;
 import br.dev.kajosama.dropship.security.services.TokenService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -120,17 +121,6 @@ public class JwtTokenUtil {
         return false;
     }
 
-    public TokenPair refreshTokens(User user) {
-        // Increment token version to invalidate all existing tokens
-        tokenService.invalidateAllUserTokens(user.getId());
-        
-        // Generate new tokens with new version
-        String accessToken = generateAccessToken(user);
-        String refreshToken = generateRefreshToken(user);
-        
-        return new TokenPair(accessToken, refreshToken);
-    }
-
     public String getEmail(String token) {
         try {
             return parseClaims(token).getSubject();
@@ -162,14 +152,6 @@ public class JwtTokenUtil {
         }
     }
 
-    public Long getTokenVersion(String token) {
-        Object versionClaim = parseClaims(token).get("tokenVersion");
-        if (versionClaim instanceof Integer integer) {
-            return integer.longValue();
-        }
-        return parseClaims(token).get("tokenVersion", Long.class);
-    }
-
     @SuppressWarnings("unchecked")
     public List<String> getRoles(String token) {
         try {
@@ -188,9 +170,6 @@ public class JwtTokenUtil {
         }
     }
 
-    /**
-     * Verifica se o token está expirado
-     */
     public boolean isTokenExpired(String token) {
         try {
             Date expiration = parseClaims(token).getExpiration();
@@ -200,9 +179,6 @@ public class JwtTokenUtil {
         }
     }
 
-    /**
-     * Recupera o tempo restante do token em milissegundos
-     */
     public long getTokenRemainingTime(String token) {
         try {
             Date expiration = parseClaims(token).getExpiration();
@@ -212,7 +188,6 @@ public class JwtTokenUtil {
         }
     }
 
-    // Método auxiliar para parsear claims
     private Claims parseClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSecretKey())
@@ -221,7 +196,6 @@ public class JwtTokenUtil {
                 .getBody();
     }
 
-    // Gera a chave secreta decodificada
     private SecretKey getSecretKey() {
         try {
             byte[] keyBytes = Base64.getDecoder().decode(jwtProperties.getSecret());
@@ -232,13 +206,26 @@ public class JwtTokenUtil {
         }
     }
 
-    public static class TokenPair {
-        private String accessToken;
-        private String refreshToken;
+    //------ TOKEN SERVICE --------------//
 
-        public TokenPair(String accessToken, String refreshToken) {
-            this.accessToken = accessToken;
-            this.refreshToken = refreshToken;
+    public TokenPair refreshTokens(User user) {
+        tokenService.invalidateAllUserTokens(user.getId());
+        
+        String accessToken = generateAccessToken(user);
+        String refreshToken = generateRefreshToken(user);
+        
+        return new TokenPair(accessToken, refreshToken);
+    }
+
+    public void logout(Long userId) {
+        tokenService.invalidateAllUserTokens(userId);
+    }
+
+    public Long getTokenVersion(String token) {
+        Object versionClaim = parseClaims(token).get("tokenVersion");
+        if (versionClaim instanceof Integer integer) {
+            return integer.longValue();
         }
+        return parseClaims(token).get("tokenVersion", Long.class);
     }
 }

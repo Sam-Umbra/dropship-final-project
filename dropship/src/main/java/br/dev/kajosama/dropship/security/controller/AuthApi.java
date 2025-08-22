@@ -6,26 +6,23 @@ package br.dev.kajosama.dropship.security.controller;
 
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.DisabledException;
-import org.springframework.security.authentication.LockedException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.dev.kajosama.dropship.domain.model.User;
-import br.dev.kajosama.dropship.domain.repositories.UserRepository;
-import br.dev.kajosama.dropship.security.jwt.JwtTokenUtil;
 import br.dev.kajosama.dropship.security.payloads.AuthRequest;
 import br.dev.kajosama.dropship.security.payloads.AuthResponse;
+import br.dev.kajosama.dropship.security.payloads.ChangePasswordRequest;
 import br.dev.kajosama.dropship.security.payloads.RefreshRequest;
+import br.dev.kajosama.dropship.security.services.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 /**
@@ -36,74 +33,62 @@ import jakarta.validation.Valid;
 @RestController
 public class AuthApi {
 
-    private final AuthenticationManager authManager;
-    private final JwtTokenUtil jwtUtil;
-    private final UserRepository userRepository;
-
-    public AuthApi(AuthenticationManager authManager,
-                   JwtTokenUtil jwtUtil,
-                   UserRepository userRepository) {
-        this.authManager = authManager;
-        this.jwtUtil = jwtUtil;
-        this.userRepository = userRepository;
-    }
+    @Autowired
+    AuthService authService;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody @Valid AuthRequest request) {
         try {
-            Authentication authentication = authManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            request.email(), request.password())
-            );
 
-            User user = (User) authentication.getPrincipal();
-            String accessToken = jwtUtil.generateAccessToken(user);
-            String refreshToken = jwtUtil.generateRefreshToken(user);
+            AuthResponse response = authService.login(request);
+            return ResponseEntity.ok(response);
 
-            AuthResponse response = new AuthResponse(user.getEmail(), accessToken, refreshToken);
-
-            return ResponseEntity.ok().body(response);
-
-        } catch (BadCredentialsException ex) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Credenciais inválidas"));
-
-        } catch (DisabledException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Conta desabilitada"));
-
-        } catch (LockedException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Conta bloqueada"));
-
-        } catch (AuthenticationException ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Erro interno do servidor"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
         }
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@RequestBody RefreshRequest request) {
+    public ResponseEntity<?> refresh(@RequestBody @Valid RefreshRequest request) {
         try {
 
-            if (!jwtUtil.validateToken(request.refreshToken())) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Refresh token inválido ou expirado"));
-            }
-
-            String email = jwtUtil.getEmail(request.refreshToken());
-            User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-
-            String newAccessToken = jwtUtil.generateAccessToken(user);
-            String newRefreshToken = jwtUtil.generateRefreshToken(user);
-
-            AuthResponse response = new AuthResponse(user.getEmail(), newAccessToken, newRefreshToken);
+            AuthResponse response = authService.refreshTokens(request);
             return ResponseEntity.ok(response);
 
-        } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Erro ao gerar novos tokens"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletRequest request) {
+        String token = getTokenFromRequest(request);
+        if (token != null) {
+            authService.logout(token);
+            return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
+        }
+        return ResponseEntity.badRequest().body(Map.of("error", "No token provided"));
+    }
+    
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordRequest request, 
+                                          Authentication authentication) {
+        try {
+            User user = (User) authentication.getPrincipal();
+            authService.changePassword(user.getId(), request);
+            return ResponseEntity.ok(Map.of("message", "Password changed successfully. Please log in again."));
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
+    private String getTokenFromRequest(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
     }
 }

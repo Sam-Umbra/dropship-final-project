@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package br.dev.kajosama.dropship.api.controllers;
 
 import java.util.HashMap;
@@ -38,7 +34,7 @@ public class TestController {
     }
 
     // Todos podem ter acesso
-    @RequestMapping("public")
+    @GetMapping("public")
     public Map<String, Object> publicEndpoint() {
         Map<String, Object> model = new HashMap<>();
         model.put("id", UUID.randomUUID().toString());
