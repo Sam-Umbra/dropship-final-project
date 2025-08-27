@@ -97,7 +97,6 @@ public class ApplicationSecurity {
             .authorizeHttpRequests(authz -> authz
                 // Public endpoints
                 .requestMatchers("/auth/login").permitAll()
-                .requestMatchers("/auth/refresh").permitAll()
                 .requestMatchers("/public/**").permitAll()
                 .requestMatchers("/error").permitAll()
                     

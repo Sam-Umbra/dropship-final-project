@@ -89,8 +89,9 @@ public class AuthService {
             throw new BadCredentialsException("Current password is incorrect");
         }
 
-        user.setRawPassword(passwordEncoder.encode(request.newPassword()));
-        userRepository.save(user);
+        String newEncodedPassword = passwordEncoder.encode(request.newPassword());
+
+        userRepository.updatePassword(userId, newEncodedPassword);
 
         jwtUtil.logout(userId);
 

@@ -233,15 +233,6 @@ public class User implements UserDetails {
         this.status = AccountStatus.ACTIVE;
     }
 
-    public User(String name, String email, String cpf, String phone, LocalDate birthDate) {
-        this();
-        this.name = name;
-        this.email = email;
-        this.cpf = cpf;
-        this.phone = phone;
-        this.birthDate = birthDate;
-    }
-
     public User(Long id, String name, String email, String password, String cpf, String phone) {
         this.id = id;
         this.name = name;
