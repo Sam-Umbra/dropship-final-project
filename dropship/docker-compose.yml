@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  # Spring Boot Application Service
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      # Use the Redis service name as the host
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      # Add any other Spring Boot properties here
+    depends_on:
+      - redis
+
+  # Redis Service
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"

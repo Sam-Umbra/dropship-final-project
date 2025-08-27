@@ -1,7 +1,6 @@
 package br.dev.kajosama.dropship.security.services;
 
 import java.time.Duration;
-import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,21 +19,41 @@ public class TokenService {
     }
 
     public void invalidateAllUserTokens(Long userId) {
-        String key = "user:token:version:" + userId;
-        redisTemplate.opsForValue().increment(key);
-        redisTemplate.expire(key, Duration.ofDays(30));
-        LOGGER.info("Incremented token version for user: {}", userId);
+        try {
+            String key = "user:token:version:" + userId;
+            Long newVersion = redisTemplate.opsForValue().increment(key);
+            redisTemplate.expire(key, Duration.ofDays(30));
+            LOGGER.info("Incremented token version for user: {} to version: {}", userId, newVersion);
+        } catch (Exception e) {
+            LOGGER.error("Failed to invalidate tokens for user {}: {}", userId, e.getMessage());
+            throw new RuntimeException("Token invalidation failed", e);
+        }
     }
 
     public Long getUserTokenVersion(Long userId) {
-        String key = "user:token:version:" + userId;
-        return Optional.ofNullable(redisTemplate.opsForValue().get(key))
-                .map(Long::parseLong)
-                .orElse(0L);
+        try {
+            String key = "user:token:version:" + userId;
+            String version = redisTemplate.opsForValue().get(key);
+            Long result = version != null ? Long.valueOf(version) : 0L;
+            LOGGER.debug("Retrieved token version {} for user {}", result, userId);
+            return result;
+        } catch (NumberFormatException e) {
+            LOGGER.error("Failed to get token version for user {}: {}", userId, e.getMessage());
+            return 0L;
+
+        }
     }
 
     public boolean isTokenVersionValid(Long userId, Long tokenVersion) {
-        Long currentVersion = getUserTokenVersion(userId);
-        return tokenVersion.equals(currentVersion);
+        try {
+            Long currentVersion = getUserTokenVersion(userId);
+            boolean isValid = tokenVersion.equals(currentVersion);
+            LOGGER.debug("Token version validation for user {}: token={}, current={}, valid={}",
+                    userId, tokenVersion, currentVersion, isValid);
+            return isValid;
+        } catch (Exception e) {
+            LOGGER.error("Failed to validate token version for user {}: {}", userId, e.getMessage());
+            return false;
+        }
     }
 }

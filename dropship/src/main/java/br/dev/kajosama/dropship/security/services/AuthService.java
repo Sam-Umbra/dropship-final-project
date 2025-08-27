@@ -20,17 +20,19 @@ import jakarta.transaction.Transactional;
 @Service
 @Transactional
 public class AuthService {
-
+    
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenUtil jwtUtil;
+    private final TokenService tokenService;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenUtil jwtUtil) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenUtil jwtUtil, TokenService tokenService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.tokenService = tokenService;
     }
 
     public AuthResponse login(AuthRequest request) {
@@ -45,11 +47,13 @@ public class AuthService {
             throw new DisabledException("Account is disabled");
         }
 
+        tokenService.invalidateAllUserTokens(user.getId());
+
         String accessToken = jwtUtil.generateAccessToken(user);
         String refreshToken = jwtUtil.generateRefreshToken(user);
 
         LOGGER.info("User {} logged in successfully", request.email());
-        return new AuthResponse(accessToken, refreshToken, request.email());
+        return new AuthResponse(request.email(), accessToken, refreshToken);
     }
 
     public AuthResponse refreshTokens(RefreshRequest request) {
@@ -68,7 +72,7 @@ public class AuthService {
         TokenPair tokens = jwtUtil.refreshTokens(user);
 
         LOGGER.info("Tokens refreshed for user {}", userId);
-        return new AuthResponse(tokens.accessToken(), tokens.refreshToken(), user.getEmail());
+        return new AuthResponse(user.getEmail(), tokens.accessToken(), tokens.refreshToken());
     }
 
     public void logout(String accessToken) {

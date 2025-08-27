@@ -40,7 +40,6 @@ public class JwtTokenUtil {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JwtTokenUtil.class);
 
-    // Corrigido: Injetar JwtProperties via construtor
     private final JwtProperties jwtProperties;
     private final ObjectMapper objectMapper;
     private final TokenService tokenService;
