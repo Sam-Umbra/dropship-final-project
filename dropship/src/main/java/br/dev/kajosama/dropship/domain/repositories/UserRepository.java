@@ -43,4 +43,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Transactional
     @Query("UPDATE User u SET u.password = ?2, u.updatedAt = CURRENT_TIMESTAMP WHERE u.id = ?1")
     void updatePassword(Long userId, String newEncodedPassword);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE User u SET u.lastLogin = CURRENT_TIMESTAMP WHERE u.id = :userId")
+    void updateLastLogin(@Param("userId") Long userId);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE User u SET u.lastExit = CURRENT_TIMESTAMP WHERE u.id = :userId")
+    void updateLastExit(@Param("userId") Long userId);
 }

@@ -99,6 +99,7 @@ public class ApplicationSecurity {
                 .requestMatchers("/auth/login").permitAll()
                 .requestMatchers("/public/**").permitAll()
                 .requestMatchers("/error").permitAll()
+                .requestMatchers(HttpMethod.POST, "/user").permitAll()
                     
                 // Allow OPTIONS for CORS preflight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

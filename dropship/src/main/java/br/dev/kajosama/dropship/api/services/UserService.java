@@ -33,8 +33,6 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    // ==================== SPRING SECURITY INTEGRATION ====================
-    // @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByEmailWithRoles(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
@@ -46,15 +44,13 @@ public class UserService {
     }
 
     // ==================== CRUD OPERATIONS ====================
-    /**
-     * Cria um novo usuário com senha criptografada
-     */
+
     public User registerAccount(User user, String rawPassword) {
         // Criptografa a senha
-        user.setRawPassword(passwordEncoder.encode(rawPassword));
+        user.setPassword(passwordEncoder.encode(rawPassword));
 
         // Role Padrão
-        Role role = roleRepository.findByName("USER")
+        Role role = roleRepository.findByName("ROLE_USER")
         .orElseThrow(() -> new RuntimeException("Role USER Not Found"));
         user.addRole(role);
 

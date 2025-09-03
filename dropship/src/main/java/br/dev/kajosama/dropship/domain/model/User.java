@@ -90,7 +90,7 @@ public class User implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private AccountStatus status = AccountStatus.ACTIVE;
+    private AccountStatus status;
 
     @NotNull
     @Past
@@ -124,7 +124,7 @@ public class User implements UserDetails {
         return this.password;
     }
 
-    public void setRawPassword(String rawPassword) {
+    public void setPassword(String rawPassword) {
         this.password = rawPassword;
     }
 
@@ -164,7 +164,7 @@ public class User implements UserDetails {
      */
     public boolean hasRole(String roleName) {
         return userRoles.stream()
-                .anyMatch(userRole -> userRole.getRole().getName().equalsIgnoreCase("ROLE_" + roleName));
+                .anyMatch(userRole -> userRole.getRole().getName().equalsIgnoreCase(roleName));
     }
 
     /**
@@ -213,33 +213,19 @@ public class User implements UserDetails {
         this.emailVerifiedAt = LocalDateTime.now();
     }
 
-    /**
-     * Atualiza último login
-     */
-    public void updateLastLogin() {
-        this.lastLogin = LocalDateTime.now();
-    }
-
-    /**
-     * Atualiza último logout
-     */
-    public void updateLastExit() {
-        this.lastExit = LocalDateTime.now();
-    }
-
     // ==================== CONSTRUTORES ====================
     public User() {
         this.createdAt = LocalDateTime.now();
         this.status = AccountStatus.ACTIVE;
     }
 
-    public User(Long id, String name, String email, String password, String cpf, String phone) {
-        this.id = id;
+    public User(String name, String email, String password, String cpf, String phone, LocalDate birthDate) {
         this.name = name;
         this.email = email;
         this.password = password;
         this.cpf = cpf;
         this.phone = phone;
+        this.birthDate = birthDate;
     }
 
     // ==================== GETTERS E SETTERS ====================

@@ -20,7 +20,7 @@ import jakarta.transaction.Transactional;
 @Service
 @Transactional
 public class AuthService {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
@@ -35,6 +35,7 @@ public class AuthService {
         this.tokenService = tokenService;
     }
 
+    @Transactional
     public AuthResponse login(AuthRequest request) {
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
@@ -48,6 +49,7 @@ public class AuthService {
         }
 
         tokenService.invalidateAllUserTokens(user.getId());
+        userRepository.updateLastLogin(user.getId());
 
         String accessToken = jwtUtil.generateAccessToken(user);
         String refreshToken = jwtUtil.generateRefreshToken(user);
@@ -77,6 +79,10 @@ public class AuthService {
 
     public void logout(String accessToken) {
         Long userId = jwtUtil.getUserId(accessToken);
+        userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User with ID " + userId + " wasn't found"));
+
+        userRepository.updateLastExit(userId);
         jwtUtil.logout(userId);
         LOGGER.info("User {} logged out successfully", userId);
     }
