@@ -6,6 +6,7 @@ import org.hibernate.validator.constraints.br.CPF;
 
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
 
 public record UserUpdateRequest(
@@ -21,6 +22,7 @@ public record UserUpdateRequest(
         @Size(max = 13, min = 13)
         String phone,
         @Nullable
+        @Past
         LocalDate birthDate) {
 
 }
