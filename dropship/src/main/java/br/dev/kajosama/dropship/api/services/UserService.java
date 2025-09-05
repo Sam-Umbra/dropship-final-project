@@ -4,6 +4,9 @@
  */
 package br.dev.kajosama.dropship.api.services;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -37,24 +40,31 @@ public class UserService {
         User user = userRepository.findByEmailWithRoles(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
-        // Força carregamento das roles se estiver usando LAZY
         user.getUserRoles().size();
 
         return user;
     }
 
-    // ==================== CRUD OPERATIONS ====================
+    public boolean existsById(Long id) {
+        return userRepository.existsById(id);
+    }
+
+    public Optional<User> getUserById(Long id) {
+        return userRepository.findById(id);
+    }
+
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+
 
     public User registerAccount(User user, String rawPassword) {
-        // Criptografa a senha
         user.setPassword(passwordEncoder.encode(rawPassword));
 
-        // Role Padrão
         Role role = roleRepository.findByName("ROLE_USER")
-        .orElseThrow(() -> new RuntimeException("Role USER Not Found"));
+                .orElseThrow(() -> new RuntimeException("Role USER Not Found"));
         user.addRole(role);
 
-        // Salva o usuário
         User savedUser = userRepository.save(user);
 
         return userRepository.save(savedUser);
