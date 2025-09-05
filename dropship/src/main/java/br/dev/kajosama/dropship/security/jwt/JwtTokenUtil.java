@@ -36,7 +36,7 @@ public class JwtTokenUtil {
     // Hora Minuto Segundo
     private static final long EXPIRE_DURATION = 15 * 60 * 1000; // 15 minutos
 
-    private static final long REFRESH_EXPIRE_DURATION = 12 * 60 * 60 * 1000; // 12 Horas
+    private static final long REFRESH_EXPIRE_DURATION = 3 * 60 * 60 * 1000; // 12 Horas
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JwtTokenUtil.class);
 

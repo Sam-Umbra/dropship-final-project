@@ -4,14 +4,23 @@ import java.time.LocalDate;
 
 import org.hibernate.validator.constraints.br.CPF;
 
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 
 public record UserUpdateRequest(
+        @Nullable
         String name,
-        @Email String email,
-        @CPF String cpf,
-        @Size(max = 13, min = 13) String phone,
+        @Nullable
+        @Email
+        String email,
+        @Nullable
+        @CPF
+        String cpf,
+        @Nullable
+        @Size(max = 13, min = 13)
+        String phone,
+        @Nullable
         LocalDate birthDate) {
 
 }

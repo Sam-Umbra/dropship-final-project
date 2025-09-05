@@ -16,6 +16,7 @@ import br.dev.kajosama.dropship.api.payloads.requests.UserUpdateRequest;
 import br.dev.kajosama.dropship.api.payloads.responses.SimpleUserResponse;
 import br.dev.kajosama.dropship.api.services.UserService;
 import br.dev.kajosama.dropship.domain.model.User;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 
 @RestController
@@ -47,7 +48,8 @@ public class UserController {
         }
 
         User user = userService.getUserById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new EntityNotFoundException
+                            ("User with ID: " + id + " found"));
 
         // Atualiza apenas os campos do DTO
         userMapper.updateUserFromDto(request, user);
@@ -56,11 +58,5 @@ public class UserController {
 
         return ResponseEntity.noContent().build();
     }
-
-    @PostMapping("/test")
-public ResponseEntity<String> testValidation(@Valid @RequestBody UserUpdateRequest request) {
-    return ResponseEntity.ok("Valid!");
-}
-
 
 }
