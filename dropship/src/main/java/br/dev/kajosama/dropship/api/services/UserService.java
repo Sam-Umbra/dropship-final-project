@@ -18,6 +18,7 @@ import br.dev.kajosama.dropship.domain.model.User;
 import br.dev.kajosama.dropship.domain.repositories.UserRepository;
 import br.dev.kajosama.dropship.security.entities.Role;
 import br.dev.kajosama.dropship.security.repositories.RoleRepository;
+import jakarta.persistence.EntityNotFoundException;
 
 /**
  *
@@ -62,12 +63,10 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(rawPassword));
 
         Role role = roleRepository.findByName("ROLE_USER")
-                .orElseThrow(() -> new RuntimeException("Role USER Not Found"));
+                .orElseThrow(() -> new EntityNotFoundException("Role USER Not Found"));
         user.addRole(role);
 
-        User savedUser = userRepository.save(user);
-
-        return userRepository.save(savedUser);
+        return userRepository.save(user);
     }
 
     public User updateAccount(User user) {
