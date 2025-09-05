@@ -104,7 +104,7 @@ public class ApplicationSecurity {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     
                 // User
-                .requestMatchers(HttpMethod.POST, "/user").permitAll()
+                .requestMatchers("/user/**").permitAll()
 
                 // Admin
                 .requestMatchers("/admin/**").hasRole("ADMIN")

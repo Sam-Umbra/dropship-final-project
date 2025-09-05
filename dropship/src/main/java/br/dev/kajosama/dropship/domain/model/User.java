@@ -62,7 +62,7 @@ public class User implements UserDetails {
     private String email;
 
     @NotBlank
-    @Size(max = 64)
+    @Size(max = 64, min = 5)
     @Column(nullable = false, length = 64)
     private String password;
 

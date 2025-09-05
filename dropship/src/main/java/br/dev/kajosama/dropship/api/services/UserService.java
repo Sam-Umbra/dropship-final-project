@@ -70,4 +70,8 @@ public class UserService {
         return userRepository.save(savedUser);
     }
 
+    public User updateAccount(User user) {
+        return userRepository.save(user);
+    }
+
 }
