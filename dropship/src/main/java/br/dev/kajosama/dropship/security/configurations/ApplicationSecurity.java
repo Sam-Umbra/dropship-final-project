@@ -99,12 +99,15 @@ public class ApplicationSecurity {
                 .requestMatchers("/auth/login").permitAll()
                 .requestMatchers("/public/**").permitAll()
                 .requestMatchers("/error").permitAll()
-                .requestMatchers(HttpMethod.POST, "/user").permitAll()
                     
                 // Allow OPTIONS for CORS preflight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                     
-                // Role-based access
+                // User
+                .requestMatchers(HttpMethod.POST, "/user").permitAll()
+
+                // Admin
+                .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/manager/**").hasRole("ADMIN")
                     
                 // All other requests need authentication

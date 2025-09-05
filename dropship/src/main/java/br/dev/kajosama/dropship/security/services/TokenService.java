@@ -1,6 +1,9 @@
 package br.dev.kajosama.dropship.security.services;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,5 +58,22 @@ public class TokenService {
             LOGGER.error("Failed to validate token version for user {}: {}", userId, e.getMessage());
             return false;
         }
+    }
+
+    public Map<String, String> getAllUserTokens() {
+        Map<String, String> tokens = new HashMap<>();
+        try {
+            Set<String> keys = redisTemplate.keys("user:token:version:*");
+            if (keys != null) {
+                for (String key : keys) {
+                    String value = redisTemplate.opsForValue().get(key);
+                    tokens.put(key, value);
+                    LOGGER.debug("Redis Key={} Value={}", key, value);
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error("Failed to fetch all tokens: {}", e.getMessage(), e);
+        }
+        return tokens;
     }
 }
