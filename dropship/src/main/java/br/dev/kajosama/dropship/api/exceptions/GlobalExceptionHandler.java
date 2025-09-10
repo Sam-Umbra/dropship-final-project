@@ -6,15 +6,16 @@ import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.TransactionSystemException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 
-@RestControllerAdvice
+@ControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -27,66 +28,70 @@ public class GlobalExceptionHandler {
                         (msg1, msg2) -> msg1
                 ));
 
-        return ResponseEntity.badRequest().body(
-                ErrorResponse.of(
-                        HttpStatus.BAD_REQUEST.value(),
-                        "Validation Failed",
-                        "Erro de validação nos campos enviados",
-                        request.getRequestURI(),
-                        errors
-                )
-        );
+        return buildResponse(HttpStatus.BAD_REQUEST, "Validation Failed", "Sent fields validation error", request.getRequestURI(), errors);
     }
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(EntityNotFoundException ex,
             HttpServletRequest request) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                ErrorResponse.of(
-                        HttpStatus.NOT_FOUND.value(),
-                        "Not Found",
-                        ex.getMessage(),
-                        request.getRequestURI()
-                )
-        );
+        return buildResponse(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(EntityAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleEntityAlreadyExists(EntityAlreadyExistsException ex,
+            HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, "Conflict", ex.getMessage(), request.getRequestURI(), null);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex,
             HttpServletRequest request) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(
-                ErrorResponse.of(
-                        HttpStatus.CONFLICT.value(),
-                        "Data Integrity Violation",
-                        "Violação de integridade: " + getRootCauseMessage(ex),
-                        request.getRequestURI()
-                )
-        );
+        return buildResponse(HttpStatus.CONFLICT, "Data Integrity Violation",
+                "Integrity Violation: " + getRootCauseMessage(ex),
+                request.getRequestURI(), null);
     }
 
     @ExceptionHandler(TransactionSystemException.class)
     public ResponseEntity<ErrorResponse> handleTransactionSystemException(TransactionSystemException ex,
             HttpServletRequest request) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                ErrorResponse.of(
-                        HttpStatus.BAD_REQUEST.value(),
-                        "Transaction Error",
-                        "Erro na transação com o banco de dados",
-                        request.getRequestURI()
-                )
+        return buildResponse(HttpStatus.BAD_REQUEST, "Transaction Error", "Transaction errors with database", request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex,
+            HttpServletRequest request) {
+
+        String message = (ex.getMessage() != null && !ex.getMessage().isBlank())
+                ? ex.getMessage()
+                : "You don't have permission to execute this action";
+
+        return buildResponse(HttpStatus.FORBIDDEN, "Access Denied", message, request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(AccountDeletedException.class)
+    public ResponseEntity<ErrorResponse> handleAccountDeleted(AccountDeletedException ex,
+                                                            HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+            ErrorResponse.of(
+                HttpStatus.FORBIDDEN.value(),
+                "Forbidden",
+                ex.getMessage(),
+                request.getRequestURI()
+            )
         );
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex, HttpServletRequest request) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                ErrorResponse.of(
-                        HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                        "Internal Server Error",
-                        ex.getMessage(),
-                        request.getRequestURI()
-                )
-        );
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", ex.getMessage(), request.getRequestURI(), null);
+    }
+
+    private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String error, String message, String path, Map<String, String> validationErrors) {
+        ErrorResponse body = validationErrors == null
+                ? ErrorResponse.of(status.value(), error, message, path)
+                : ErrorResponse.of(status.value(), error, message, path, validationErrors);
+
+        return ResponseEntity.status(status).body(body);
     }
 
     private String getRootCauseMessage(Throwable ex) {

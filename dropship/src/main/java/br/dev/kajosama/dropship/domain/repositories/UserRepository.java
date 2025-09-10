@@ -30,6 +30,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByCpf(String cpf);
 
+    boolean existsByEmailAndIdNot(String email, Long id);
+
+    boolean existsByCpfAndIdNot(String cpf, Long id);
+
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.userRoles WHERE u.email = :email")
     Optional<User> findByEmailWithRoles(@Param("email") String email);
 
@@ -53,4 +57,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Transactional
     @Query("UPDATE User u SET u.lastExit = CURRENT_TIMESTAMP WHERE u.id = :userId")
     void updateLastExit(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("UPDATE User u SET u.deletedAt = CURRENT_TIMESTAMP, u.status = 'DELETED' WHERE u.id = :id")
+    void softDeleteById(@Param("id") Long id);
 }

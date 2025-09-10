@@ -140,9 +140,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return this.status != AccountStatus.SUSPENDED
-                && this.status != AccountStatus.DELETED
-                && this.deletedAt == null;
+        return this.status != AccountStatus.SUSPENDED;
     }
 
     @Override
@@ -154,17 +152,14 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         /*return this.status == AccountStatus.ACTIVE
                 && this.emailVerifiedAt != null; // Só ativo se email verificado */
-                return true;
+        return true;
     }
 
     // ==================== MÉTODOS DE CONVENIÊNCIA ====================
-    /**
-     * Verifica se o usuário tem uma role específica
-     * ROLE + Nome
-     */
     public boolean hasRole(String roleName) {
         return userRoles.stream()
-                .anyMatch(userRole -> userRole.getRole().getName().equalsIgnoreCase(roleName));
+                .map(userRole -> userRole.getRole().getName().toUpperCase())
+                .anyMatch(r -> r.equalsIgnoreCase(roleName) || r.equalsIgnoreCase("ROLE_" + roleName));
     }
 
     /**
@@ -183,12 +178,9 @@ public class User implements UserDetails {
                 -> userRole.getRole().getName().equalsIgnoreCase(roleName));
     }
 
-    /**
-     * Marca a conta como deletada (soft delete)
-     */
-    public void markAsDeleted() {
-        this.deletedAt = LocalDateTime.now();
-        this.status = AccountStatus.DELETED;
+    public boolean isAccountDeleted() {
+        return this.status == AccountStatus.DELETED
+                && this.deletedAt != null;
     }
 
     /**
