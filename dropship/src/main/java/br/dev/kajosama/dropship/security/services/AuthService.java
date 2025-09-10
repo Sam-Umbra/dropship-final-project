@@ -7,6 +7,7 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import br.dev.kajosama.dropship.api.exceptions.AccountDeletedException;
 import br.dev.kajosama.dropship.domain.model.User;
 import br.dev.kajosama.dropship.domain.repositories.UserRepository;
 import br.dev.kajosama.dropship.security.jwt.JwtTokenUtil;
@@ -47,6 +48,9 @@ public class AuthService {
         if (!user.isEnabled()) {
             throw new DisabledException("Account is disabled");
         }
+        if(user.isAccountDeleted()) {
+            throw new AccountDeletedException("Account is deleted");
+        }
 
         tokenService.invalidateAllUserTokens(user.getId());
         userRepository.updateLastLogin(user.getId());
@@ -69,6 +73,9 @@ public class AuthService {
 
         if (!user.isEnabled()) {
             throw new DisabledException("Account is disabled");
+        }
+        if(user.isAccountDeleted()) {
+            throw new AccountDeletedException("Account is deleted");
         }
 
         TokenPair tokens = jwtUtil.refreshTokens(user);

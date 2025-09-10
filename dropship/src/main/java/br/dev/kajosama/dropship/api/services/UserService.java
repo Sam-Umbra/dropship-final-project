@@ -25,6 +25,7 @@ import br.dev.kajosama.dropship.domain.model.User;
 import br.dev.kajosama.dropship.domain.repositories.UserRepository;
 import br.dev.kajosama.dropship.security.entities.Role;
 import br.dev.kajosama.dropship.security.repositories.RoleRepository;
+import br.dev.kajosama.dropship.security.services.TokenService;
 import jakarta.persistence.EntityNotFoundException;
 
 /**
@@ -46,6 +47,9 @@ public class UserService {
 
     @Autowired
     UserMapper userMapper;
+
+    @Autowired
+    TokenService tokenService;
 
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByEmailWithRoles(username)
@@ -124,6 +128,8 @@ public class UserService {
         if (!currentUser.getEmail().equals(user.getEmail()) && !currentUser.hasRole("ADMIN")) {
             throw new AccessDeniedException("You can only delete your account, unless you're an ADMIN");
         }
+
+        tokenService.invalidateAllUserTokens(id);
 
         userRepository.softDeleteById(id);
     }
