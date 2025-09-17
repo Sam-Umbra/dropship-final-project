@@ -16,6 +16,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import br.dev.kajosama.dropship.domain.model.User;
+import br.dev.kajosama.dropship.domain.model.enums.AccountStatus;
 
 /**
  *
@@ -59,6 +60,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     void updateLastExit(@Param("userId") Long userId);
 
     @Modifying
+    @Transactional
     @Query("UPDATE User u SET u.deletedAt = CURRENT_TIMESTAMP, u.status = 'DELETED' WHERE u.id = :id")
     void softDeleteById(@Param("id") Long id);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE User u SET u.status = :status, u.updatedAt = CURRENT_TIMESTAMP WHERE u.id = :id")
+    void updateStatus(@Param("status") AccountStatus status, @Param("id") Long id);
 }

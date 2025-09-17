@@ -18,6 +18,7 @@ import br.dev.kajosama.dropship.api.services.UserService;
 import br.dev.kajosama.dropship.security.services.TokenService;
 
 
+
 @RestController
 @RequestMapping("/admin")
 public class AdminController {
@@ -27,7 +28,7 @@ public class AdminController {
     TokenService tokenService;
 
     @GetMapping("/tokens")
-    public ResponseEntity<Map<String,String>> gettAllTokens() {
+    public ResponseEntity<Map<String,String>> getAllTokens() {
         Map<String, String> tokens = tokenService.getAllUserTokens();
         return ResponseEntity.ok(tokens);
     }
@@ -61,5 +62,4 @@ public class AdminController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
-
 }

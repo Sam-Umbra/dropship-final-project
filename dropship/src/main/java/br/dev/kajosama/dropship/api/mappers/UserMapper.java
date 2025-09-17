@@ -7,7 +7,7 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.ReportingPolicy;
 
-import br.dev.kajosama.dropship.api.payloads.requests.UserUpdateRequest;
+import br.dev.kajosama.dropship.api.payloads.requests.AccountUpdateRequest;
 import br.dev.kajosama.dropship.domain.model.User;
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
@@ -24,5 +24,5 @@ public interface UserMapper {
     @Mapping(target = "lastLogin", ignore = true)
     @Mapping(target = "lastExit", ignore = true)
     @Mapping(target = "userRoles", ignore = true)
-    void updateUserFromDto(UserUpdateRequest dto, @MappingTarget User entity);
+    void updateUserFromDto(AccountUpdateRequest dto, @MappingTarget User entity);
 }

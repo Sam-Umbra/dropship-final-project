@@ -20,7 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import br.dev.kajosama.dropship.api.exceptions.AccountDeletedException;
 import br.dev.kajosama.dropship.api.exceptions.EntityAlreadyExistsException;
 import br.dev.kajosama.dropship.api.mappers.UserMapper;
-import br.dev.kajosama.dropship.api.payloads.requests.UserUpdateRequest;
+import br.dev.kajosama.dropship.api.payloads.requests.AccountUpdateRequest;
+import br.dev.kajosama.dropship.api.payloads.requests.StatusUpdateRequest;
 import br.dev.kajosama.dropship.domain.model.User;
 import br.dev.kajosama.dropship.domain.repositories.UserRepository;
 import br.dev.kajosama.dropship.security.entities.Role;
@@ -90,7 +91,7 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public void updateAccount(Long id, UserUpdateRequest request) {
+    public void updateAccount(Long id, AccountUpdateRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) auth.getPrincipal();
 
@@ -120,7 +121,7 @@ public class UserService {
         User currentUser = (User) auth.getPrincipal();
 
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+                .orElseThrow(() -> new EntityNotFoundException("User with ID: " + id + " not found"));
 
         if (user.isAccountDeleted()) {
             throw new AccountDeletedException("You can't modify a deleted account");
@@ -132,6 +133,24 @@ public class UserService {
         tokenService.invalidateAllUserTokens(id);
 
         userRepository.softDeleteById(id);
+        userRepository.updateLastExit(id);
+    }
+
+    public void updateStatus(Long id, StatusUpdateRequest status) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) auth.getPrincipal();
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User with ID: " + id + " not found"));
+
+        if (!currentUser.getEmail().equals(user.getEmail()) && !currentUser.hasRole("ADMIN")) {
+            throw new AccessDeniedException("You can only modify your account, unless you're an ADMIN");
+        }
+        if (user.isAccountDeleted() && !currentUser.hasRole("ADMIN")) {
+            throw new AccountDeletedException("You can't modify a deleted account");
+        }
+
+        userRepository.updateStatus(status.status(), id);
     }
 
 }
