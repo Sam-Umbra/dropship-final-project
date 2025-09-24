@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import br.dev.kajosama.dropship.domain.model.User;
+import br.dev.kajosama.dropship.domain.model.entities.User;
 import br.dev.kajosama.dropship.security.configurations.JwtProperties;
 import br.dev.kajosama.dropship.security.payloads.TokenPair;
 import br.dev.kajosama.dropship.security.services.TokenService;

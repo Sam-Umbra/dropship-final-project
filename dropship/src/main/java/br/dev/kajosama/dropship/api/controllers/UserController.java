@@ -17,7 +17,7 @@ import br.dev.kajosama.dropship.api.payloads.requests.AccountUpdateRequest;
 import br.dev.kajosama.dropship.api.payloads.requests.StatusUpdateRequest;
 import br.dev.kajosama.dropship.api.payloads.responses.SimpleUserResponse;
 import br.dev.kajosama.dropship.api.services.UserService;
-import br.dev.kajosama.dropship.domain.model.User;
+import br.dev.kajosama.dropship.domain.model.entities.User;
 import jakarta.validation.Valid;
 
 @RestController

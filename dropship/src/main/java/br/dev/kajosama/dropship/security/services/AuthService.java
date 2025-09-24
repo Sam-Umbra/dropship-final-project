@@ -8,7 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import br.dev.kajosama.dropship.api.exceptions.AccountDeletedException;
-import br.dev.kajosama.dropship.domain.model.User;
+import br.dev.kajosama.dropship.domain.model.entities.User;
 import br.dev.kajosama.dropship.domain.repositories.UserRepository;
 import br.dev.kajosama.dropship.security.jwt.JwtTokenUtil;
 import br.dev.kajosama.dropship.security.payloads.AuthRequest;

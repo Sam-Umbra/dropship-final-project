@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import br.dev.kajosama.dropship.domain.model.User;
+import br.dev.kajosama.dropship.domain.model.entities.User;
 import br.dev.kajosama.dropship.security.payloads.AuthRequest;
 import br.dev.kajosama.dropship.security.payloads.AuthResponse;
 import br.dev.kajosama.dropship.security.payloads.ChangePasswordRequest;

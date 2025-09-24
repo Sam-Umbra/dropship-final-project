@@ -20,7 +20,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import br.dev.kajosama.dropship.domain.model.User;
+import br.dev.kajosama.dropship.domain.model.entities.User;
 import br.dev.kajosama.dropship.security.entities.Role;
 import br.dev.kajosama.dropship.security.entities.UserRole;
 import io.jsonwebtoken.ExpiredJwtException;

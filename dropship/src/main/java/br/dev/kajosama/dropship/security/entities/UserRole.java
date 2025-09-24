@@ -6,7 +6,7 @@ package br.dev.kajosama.dropship.security.entities;
 
 import java.time.LocalDateTime;
 
-import br.dev.kajosama.dropship.domain.model.User;
+import br.dev.kajosama.dropship.domain.model.entities.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

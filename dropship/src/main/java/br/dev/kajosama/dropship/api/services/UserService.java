@@ -22,7 +22,7 @@ import br.dev.kajosama.dropship.api.exceptions.EntityAlreadyExistsException;
 import br.dev.kajosama.dropship.api.mappers.UserMapper;
 import br.dev.kajosama.dropship.api.payloads.requests.AccountUpdateRequest;
 import br.dev.kajosama.dropship.api.payloads.requests.StatusUpdateRequest;
-import br.dev.kajosama.dropship.domain.model.User;
+import br.dev.kajosama.dropship.domain.model.entities.User;
 import br.dev.kajosama.dropship.domain.repositories.UserRepository;
 import br.dev.kajosama.dropship.security.entities.Role;
 import br.dev.kajosama.dropship.security.repositories.RoleRepository;
