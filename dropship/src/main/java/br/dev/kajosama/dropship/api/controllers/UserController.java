@@ -28,7 +28,7 @@ public class UserController {
     UserService userService;
 
     @PostMapping
-    @ResponseStatus(HttpStatus.OK)
+    @ResponseStatus(HttpStatus.CREATED)
     public SimpleUserResponse registerAccount(@Valid @RequestBody User user) {
 
         String rawPassword = user.getPassword();

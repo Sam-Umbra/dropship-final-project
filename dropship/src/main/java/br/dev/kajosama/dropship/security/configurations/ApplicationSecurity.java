@@ -106,6 +106,9 @@ public class ApplicationSecurity {
                 // User
                 .requestMatchers(HttpMethod.POST, "/user").permitAll()
 
+                // Product
+                .requestMatchers(HttpMethod.GET, "/product/**").permitAll()
+
                 // Admin
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/manager/**").hasRole("ADMIN")

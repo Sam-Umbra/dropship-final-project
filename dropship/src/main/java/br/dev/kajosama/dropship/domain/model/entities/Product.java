@@ -1,5 +1,9 @@
 package br.dev.kajosama.dropship.domain.model.entities;
 
+import java.time.LocalDateTime;
+
+import org.hibernate.annotations.UpdateTimestamp;
+
 import br.dev.kajosama.dropship.domain.model.enums.ProductStatus;
 import br.dev.kajosama.dropship.domain.model.objects.Price;
 import jakarta.persistence.Column;
@@ -48,6 +52,10 @@ public class Product {
     @Enumerated(EnumType.STRING)
     private ProductStatus status;
 
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     public Product() {
     }
 
@@ -87,9 +95,8 @@ public class Product {
         return this.price;
     }
 
-    public void setPrice(double num) {
-        Price newPrice = Price.of(num);
-        this.price = newPrice;
+    public void setPrice(Price price) {
+        this.price = price;
     }
 
     public Integer getStock() {
@@ -107,4 +114,13 @@ public class Product {
     public void setStatus(ProductStatus status) {
         this.status = status;
     }
+
+    public LocalDateTime getUpdatedAt() {
+        return this.updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
 }
