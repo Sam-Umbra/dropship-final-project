@@ -41,6 +41,10 @@ public class ProductService {
         productRepo.deleteById(id);
     }
 
+    public List<Product> getProductByCategoryId(Long id) {
+        return productRepo.findByCategoryId(id);
+    }
+
     /*
      * IMPLEMENTAR SEGURANÇA NA MANIPULAÇÃO DE PRODUTOS
      * SÓ DEVE SER PERMITIDO FAZER ALTERAÇÕES EM UM PRODUTO CASO O USUÁRIO
