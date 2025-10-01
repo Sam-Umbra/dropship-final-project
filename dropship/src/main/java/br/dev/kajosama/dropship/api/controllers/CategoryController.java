@@ -33,9 +33,9 @@ public class CategoryController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(categoryService.getParentCategories()
-            .stream()
-            .map(CategoryResponse::fromEntity)
-            .toList()
+                .stream()
+                .map(CategoryResponse::fromEntity)
+                .toList()
         );
     }
 
@@ -53,7 +53,7 @@ public class CategoryController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {   
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategoryById(id);
         return ResponseEntity.noContent().build();
     }

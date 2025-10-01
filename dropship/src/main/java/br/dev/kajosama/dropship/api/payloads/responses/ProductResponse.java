@@ -12,6 +12,8 @@ public record ProductResponse(
         BigDecimal price,
         Integer stock,
         ProductStatus status,
+        BigDecimal discount,
+        String imgUrl,
         CategorySummary categorySummary
 ) {
     public static ProductResponse fromEntity(Product product) {
@@ -30,6 +32,8 @@ public record ProductResponse(
                 product.getPrice().getAmount(),
                 product.getStock(),
                 product.getStatus(),
+                product.getDiscount(),
+                product.getImgUrl(),
                 summary
         );
     }

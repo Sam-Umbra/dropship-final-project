@@ -23,8 +23,18 @@ public interface ProductMapper {
     void updateProductFromDto(ProductRequest dto, @MappingTarget Product entity);
 
     default Price map(BigDecimal value) {
-        if (value == null) return null;
+        if (value == null) {
+            return null;
+        }
         Price price = Price.of(value);
         return price;
     }
+
+    default BigDecimal map(Price price) {
+        if (price == null) {
+            return null;
+        }
+        return price.getAmount();
+    }
+
 }

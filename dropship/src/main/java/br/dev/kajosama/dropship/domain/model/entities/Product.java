@@ -1,5 +1,6 @@
 package br.dev.kajosama.dropship.domain.model.entities;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -8,6 +9,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import br.dev.kajosama.dropship.domain.model.enums.ProductStatus;
 import br.dev.kajosama.dropship.domain.model.objects.Price;
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -20,6 +23,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -36,7 +41,6 @@ public class Product {
     /*
      * private Long supplierId;
      */
-
     @NotBlank
     @Size(max = 80, min = 5)
     @Column(name = "product_name", nullable = false, length = 80)
@@ -48,6 +52,9 @@ public class Product {
 
     @NotNull
     @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "amount", column = @Column(name = "price", precision = 10, scale = 2, nullable = false))
+    })
     private Price price;
 
     @NotNull
@@ -64,23 +71,33 @@ public class Product {
     @NotNull
     private String imgUrl;
 
+    @DecimalMin(value = "0.0", inclusive = true)
+    @DecimalMax(value = "100.0", inclusive = true)
+    @Column(name = "discount", precision = 5, scale = 2, nullable = false)
+    /*
+     * Número de 0 até 100, representando %
+     */
+    private BigDecimal discount;
+
     @ManyToMany
     @JoinTable(
-        name = "product_categories",
-        joinColumns = @JoinColumn(name = "product_id"),
-        inverseJoinColumns = @JoinColumn(name = "category_id")
+            name = "product_categories",
+            joinColumns = @JoinColumn(name = "product_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
     )
     private Set<Category> categories = new HashSet<>();
 
-    public Product() {}
+    public Product() {
+    }
 
-    public Product(String name, String description, Price price, Integer stock, ProductStatus status, String imgUrl) {
+    public Product(String name, String description, Price price, Integer stock, ProductStatus status, String imgUrl, BigDecimal discount) {
         this.name = name;
         this.description = description;
         this.price = price;
         this.stock = stock;
         this.status = status;
         this.imgUrl = imgUrl;
+        this.discount = discount;
     }
 
     public Long getId() {
@@ -145,6 +162,14 @@ public class Product {
 
     public void setImgUrl(String imgUrl) {
         this.imgUrl = imgUrl;
+    }
+
+    public BigDecimal getDiscount() {
+        return this.discount;
+    }
+
+    public void setDiscount(BigDecimal discount) {
+        this.discount = discount;
     }
 
     public Set<Category> getCategories() {

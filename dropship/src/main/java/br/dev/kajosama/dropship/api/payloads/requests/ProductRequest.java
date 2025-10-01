@@ -12,6 +12,7 @@ public record ProductRequest(
         BigDecimal price,
         Integer stock,
         ProductStatus status,
-        String imgUrl) {
+        String imgUrl,
+        BigDecimal discount) {
 
 }
