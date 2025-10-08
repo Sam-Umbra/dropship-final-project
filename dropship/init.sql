@@ -1,0 +1,132 @@
+SET NAMES utf8mb4;
+
+-- ======================================
+-- Banco de dados: center_db
+-- ======================================
+CREATE DATABASE IF NOT EXISTS center_db
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+
+USE center_db;
+
+-- ======================================
+-- 1. Categorias
+-- ======================================
+DROP TABLE IF EXISTS product_categories;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS categories;
+
+CREATE TABLE categories (
+    category_id INT AUTO_INCREMENT PRIMARY KEY,
+    category_name VARCHAR(100) NOT NULL UNIQUE,
+    parent_category_id INT DEFAULT NULL,
+    CONSTRAINT fk_parent_category FOREIGN KEY (parent_category_id)
+        REFERENCES categories(category_id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+INSERT INTO categories (category_id, category_name, parent_category_id) VALUES
+    (1, 'Eletrônicos', NULL),
+    (2, 'Computadores', 1),
+    (3, 'Notebooks', 2),
+    (4, 'Celulares', 1),
+    (5, 'Smartphones', 4),
+    (6, 'Acessórios', 1),
+    (7, 'Fones de Ouvido', 6),
+    (8, 'Jogos', 1);
+
+-- ======================================
+-- 2. Produtos
+-- ======================================
+CREATE TABLE products (
+    product_id INT AUTO_INCREMENT PRIMARY KEY,
+    product_name VARCHAR(80) NOT NULL,
+    description TEXT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    stock INT NOT NULL,
+    status ENUM('ACTIVE','INACTIVE') NOT NULL DEFAULT 'ACTIVE',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    img_url VARCHAR(500) NOT NULL,
+    discount DECIMAL(5,2) NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO products (product_id, product_name, description, price, stock, status, img_url, discount) VALUES
+    (1, 'Notebook Gamer', 'Notebook de alto desempenho para jogos', 4500.00, 10, 'ACTIVE', 'https://m.media-amazon.com/images/I/51Wv-tEUn6L._AC_SX679_.jpg', 10),
+    (2, 'Smartphone X', 'Smartphone moderno com câmera avançada e alto desempenho', 2200.00, 20, 'ACTIVE', 'https://d3qoj2c6mu9s8x.cloudfront.net/Custom/Content/Products/40/06/4006975_smartphone-apple-iphone-x-5-8-camera-12mp-dual-frontal-7mp-com-ios-11-prata-256gb_m2_637223855454369999.webp', 12),
+    (3, 'Fone de Ouvido Bluetooth', 'Fone de ouvido sem fio com bateria de longa duração', 150.00, 50, 'ACTIVE', 'https://m.media-amazon.com/images/I/51olNZRjn+L._AC_SY300_SX300_.jpg', 25);
+
+-- ======================================
+-- 3. Relacionamento Produto-Categoria
+-- ======================================
+CREATE TABLE product_categories (
+    product_id INT NOT NULL,
+    category_id INT NOT NULL,
+    PRIMARY KEY (product_id, category_id),
+    CONSTRAINT fk_pc_product FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
+    CONSTRAINT fk_pc_category FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO product_categories (product_id, category_id) VALUES
+    (1, 3),
+    (2, 5),
+    (3, 7);
+
+-- ======================================
+-- 4. Papéis (Roles)
+-- ======================================
+DROP TABLE IF EXISTS users_roles;
+DROP TABLE IF EXISTS roles;
+
+CREATE TABLE roles (
+    role_id INT AUTO_INCREMENT PRIMARY KEY,
+    role_name VARCHAR(45) NOT NULL UNIQUE,
+    description VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO roles (role_id, role_name, description, created_at) VALUES
+    (1, 'ROLE_ADMIN', 'Administrator role with full permissions', NOW()),
+    (2, 'ROLE_USER', 'Regular user role with limited permissions', NOW());
+
+-- ======================================
+-- 5. Usuários
+-- ======================================
+DROP TABLE IF EXISTS users;
+
+CREATE TABLE users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(64) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NULL,
+    deleted_at TIMESTAMP NULL,
+    cpf CHAR(11) NOT NULL UNIQUE,
+    phone CHAR(13) NOT NULL,
+    status ENUM('ACTIVE','INACTIVE') NOT NULL DEFAULT 'ACTIVE',
+    birth_date DATE NOT NULL,
+    email_verified_at TIMESTAMP NULL,
+    last_login TIMESTAMP NULL,
+    last_exit TIMESTAMP NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO users (user_id, name, email, password, created_at, cpf, phone, status, birth_date, email_verified_at) VALUES
+    (1, 'João Silva', 'joao.silva@email.com', '$2a$10$odd29HJ1aXK/5MIYHO2rbu9O1apPF03KRmhx940iy3GZ5Oamwpg4y', NOW(), '12345678901', '11987654321', 'ACTIVE', '1990-05-15', NOW()),
+    (2, 'Maria Oliveira', 'maria.oliveira@email.com', '$2a$10$odd29HJ1aXK/5MIYHO2rbu9O1apPF03KRmhx940iy3GZ5Oamwpg4y', NOW(), '98765432109', '11911223344', 'ACTIVE', '1985-08-22', NOW());
+
+-- ======================================
+-- 6. Usuário-Papéis
+-- ======================================
+CREATE TABLE users_roles (
+    user_role_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    role_id INT NOT NULL,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ur_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    CONSTRAINT fk_ur_role FOREIGN KEY (role_id) REFERENCES roles(role_id) ON DELETE CASCADE,
+    UNIQUE KEY uq_user_role (user_id, role_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO users_roles (user_id, role_id, assigned_at) VALUES
+    (1, 1, NOW()),
+    (2, 2, NOW());
