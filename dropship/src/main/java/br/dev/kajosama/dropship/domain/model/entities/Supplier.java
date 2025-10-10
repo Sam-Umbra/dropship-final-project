@@ -10,7 +10,7 @@ import org.hibernate.validator.constraints.br.CNPJ;
 
 import br.dev.kajosama.dropship.domain.interfaces.ValidPhone;
 import br.dev.kajosama.dropship.domain.model.enums.AccountStatus;
-import br.dev.kajosama.dropship.domain.model.objects.SupplierTier;
+import br.dev.kajosama.dropship.domain.model.enums.SupplierTier;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

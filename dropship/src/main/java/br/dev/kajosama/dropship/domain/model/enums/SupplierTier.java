@@ -1,4 +1,4 @@
-package br.dev.kajosama.dropship.domain.model.objects;
+package br.dev.kajosama.dropship.domain.model.enums;
 
 
 public enum SupplierTier {
