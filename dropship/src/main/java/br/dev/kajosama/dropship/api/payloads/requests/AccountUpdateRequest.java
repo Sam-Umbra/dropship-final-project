@@ -4,6 +4,7 @@ import java.time.LocalDate;
 
 import org.hibernate.validator.constraints.br.CPF;
 
+import br.dev.kajosama.dropship.domain.interfaces.ValidPhone;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Past;
@@ -19,7 +20,8 @@ public record AccountUpdateRequest(
         @CPF
         String cpf,
         @Nullable
-        @Size(max = 13, min = 13)
+        @Size(max = 15, min = 10)
+        @ValidPhone
         String phone,
         @Nullable
         @Past

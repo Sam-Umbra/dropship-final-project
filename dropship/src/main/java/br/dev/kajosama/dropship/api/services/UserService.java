@@ -17,6 +17,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.google.i18n.phonenumbers.NumberParseException;
+
 import br.dev.kajosama.dropship.api.exceptions.AccountDeletedException;
 import br.dev.kajosama.dropship.api.exceptions.EntityAlreadyExistsException;
 import br.dev.kajosama.dropship.api.mappers.UserMapper;
@@ -24,6 +26,7 @@ import br.dev.kajosama.dropship.api.payloads.requests.AccountUpdateRequest;
 import br.dev.kajosama.dropship.api.payloads.requests.StatusUpdateRequest;
 import br.dev.kajosama.dropship.domain.model.entities.User;
 import br.dev.kajosama.dropship.domain.repositories.UserRepository;
+import br.dev.kajosama.dropship.domain.validators.PhoneValidator;
 import br.dev.kajosama.dropship.security.entities.Role;
 import br.dev.kajosama.dropship.security.repositories.RoleRepository;
 import br.dev.kajosama.dropship.security.services.TokenService;
@@ -113,6 +116,19 @@ public class UserService {
         }
 
         userMapper.updateUserFromDto(request, user);
+
+        Optional.ofNullable(request)
+                .map(AccountUpdateRequest::phone)
+                .filter(p -> !p.isBlank())
+                .ifPresent(p -> {
+                    try {
+                        String normalizedPhone = PhoneValidator.normalizeToE164(p, "BR");
+                        user.setPhone(normalizedPhone);
+                    } catch (NumberParseException e) {
+                        throw new IllegalArgumentException("Invalid phone number:" + p);
+                    }
+                });
+
         userRepository.save(user);
     }
 

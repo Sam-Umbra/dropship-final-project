@@ -19,6 +19,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import br.dev.kajosama.dropship.domain.interfaces.ValidPhone;
 import br.dev.kajosama.dropship.domain.model.enums.AccountStatus;
 import br.dev.kajosama.dropship.security.entities.Role;
 import br.dev.kajosama.dropship.security.entities.UserRole;
@@ -86,8 +87,9 @@ public class User implements UserDetails {
     private String cpf;
 
     @NotBlank
-    @Size(max = 13, min = 13)
-    @Column(nullable = false, length = 13)
+    @Size(max = 15, min = 10)
+    @Column(nullable = false, length = 15)
+    @ValidPhone
     private String phone;
 
     @Enumerated(EnumType.STRING)

@@ -25,10 +25,10 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.toMap(
                         fieldError -> fieldError.getField(),
                         fieldError -> fieldError.getDefaultMessage(),
-                        (msg1, msg2) -> msg1
-                ));
+                        (msg1, msg2) -> msg1));
 
-        return buildResponse(HttpStatus.BAD_REQUEST, "Validation Failed", "Sent fields validation error", request.getRequestURI(), errors);
+        return buildResponse(HttpStatus.BAD_REQUEST, "Validation Failed", "Sent fields validation error",
+                request.getRequestURI(), errors);
     }
 
     @ExceptionHandler(EntityNotFoundException.class)
@@ -54,7 +54,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TransactionSystemException.class)
     public ResponseEntity<ErrorResponse> handleTransactionSystemException(TransactionSystemException ex,
             HttpServletRequest request) {
-        return buildResponse(HttpStatus.BAD_REQUEST, "Transaction Error", "Transaction errors with database", request.getRequestURI(), null);
+        return buildResponse(HttpStatus.BAD_REQUEST, "Transaction Error", "Transaction errors with database",
+                request.getRequestURI(), null);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -70,23 +71,41 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccountDeletedException.class)
     public ResponseEntity<ErrorResponse> handleAccountDeleted(AccountDeletedException ex,
-                                                            HttpServletRequest request) {
+            HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
-            ErrorResponse.of(
-                HttpStatus.FORBIDDEN.value(),
-                "Forbidden",
-                ex.getMessage(),
-                request.getRequestURI()
-            )
-        );
+                ErrorResponse.of(
+                        HttpStatus.FORBIDDEN.value(),
+                        "Forbidden",
+                        ex.getMessage(),
+                        request.getRequestURI()));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex,
+            HttpServletRequest request) {
+        String message = ex.getMessage();
+        Map<String, String> fieldErrors = null;
+
+        if (message != null && message.contains(":")) {
+            String[] parts = message.split(":", 2);
+            String field = parts[0].trim().toLowerCase();
+            String errorMsg = parts[1].trim();
+            fieldErrors = Map.of(field, errorMsg);
+            message = "Validation Failed";
+        }
+
+        return buildResponse(HttpStatus.BAD_REQUEST, "Validation Failed", message, request.getRequestURI(),
+                fieldErrors);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", ex.getMessage(), request.getRequestURI(), null);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", ex.getMessage(),
+                request.getRequestURI(), null);
     }
 
-    private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String error, String message, String path, Map<String, String> validationErrors) {
+    private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String error, String message, String path,
+            Map<String, String> validationErrors) {
         ErrorResponse body = validationErrors == null
                 ? ErrorResponse.of(status.value(), error, message, path)
                 : ErrorResponse.of(status.value(), error, message, path, validationErrors);

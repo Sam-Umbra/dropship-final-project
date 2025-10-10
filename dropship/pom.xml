@@ -101,6 +101,13 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- Validação de Telefone Google -->
+        <dependency>
+            <groupId>com.googlecode.libphonenumber</groupId>
+            <artifactId>libphonenumber</artifactId>
+            <version>9.0.16</version>
+        </dependency>
+
         <!-- Testes -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
