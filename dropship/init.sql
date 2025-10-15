@@ -87,6 +87,8 @@ CREATE TABLE roles (
 INSERT INTO roles (role_id, role_name, description, created_at) VALUES
     (1, 'ROLE_ADMIN', 'Administrator role with full permissions', NOW()),
     (2, 'ROLE_USER', 'Regular user role with limited permissions', NOW());
+    (3, 'ROLE_SUPPLIER_PRIMARY', 'Primary supplier role with full supplier permissions', NOW());
+    (4, 'ROLE_SUPPLIER', 'Regular supplier role with limited supplier permissions', NOW());
 
 -- ======================================
 -- 5. Usuários

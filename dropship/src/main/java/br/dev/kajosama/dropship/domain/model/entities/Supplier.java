@@ -2,6 +2,8 @@ package br.dev.kajosama.dropship.domain.model.entities;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -11,13 +13,16 @@ import org.hibernate.validator.constraints.br.CNPJ;
 import br.dev.kajosama.dropship.domain.interfaces.ValidPhone;
 import br.dev.kajosama.dropship.domain.model.enums.AccountStatus;
 import br.dev.kajosama.dropship.domain.model.enums.SupplierTier;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -30,7 +35,7 @@ import jakarta.validation.constraints.Size;
 public class Supplier {
 
     @Id
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "supplier_id")
     private Long id;
 
@@ -82,6 +87,8 @@ public class Supplier {
     @Column(name = "commission_rate", precision = 5, scale = 2, nullable = false)
     private BigDecimal commissionRate;
 
+    @OneToMany(mappedBy = "supplier", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<SupplierUser> supplierUsers = new ArrayList<>();
 
     public Supplier() {
     }
@@ -271,10 +278,19 @@ public class Supplier {
         return this;
     }
 
+    public List<SupplierUser> getSupplierUsers() {
+        return supplierUsers;
+    }
+
+    public void setSupplierUsers(List<SupplierUser> supplierUsers) {
+        this.supplierUsers = supplierUsers;
+    }
+
     @Override
     public boolean equals(Object o) {
-        if (o == this)
+        if (o == this) {
             return true;
+        }
         if (!(o instanceof Supplier)) {
             return false;
         }
@@ -289,22 +305,20 @@ public class Supplier {
 
     @Override
     public String toString() {
-        return "{" +
-            " id='" + getId() + "'" +
-            ", name='" + getName() + "'" +
-            ", cnpj='" + getCnpj() + "'" +
-            ", approved='" + isApproved() + "'" +
-            ", tier='" + getTier() + "'" +
-            ", dbUrl='" + getDbUrl() + "'" +
-            ", createdAt='" + getCreatedAt() + "'" +
-            ", updatedAt='" + getUpdatedAt() + "'" +
-            ", deletedAt='" + getDeletedAt() + "'" +
-            ", status='" + getStatus() + "'" +
-            ", email='" + getEmail() + "'" +
-            ", phone='" + getPhone() + "'" +
-            ", commissionRate='" + getcommissionRate() + "'" +
-            "}";
+        return "{"
+                + " id='" + getId() + "'"
+                + ", name='" + getName() + "'"
+                + ", cnpj='" + getCnpj() + "'"
+                + ", approved='" + isApproved() + "'"
+                + ", tier='" + getTier() + "'"
+                + ", dbUrl='" + getDbUrl() + "'"
+                + ", createdAt='" + getCreatedAt() + "'"
+                + ", updatedAt='" + getUpdatedAt() + "'"
+                + ", deletedAt='" + getDeletedAt() + "'"
+                + ", status='" + getStatus() + "'"
+                + ", email='" + getEmail() + "'"
+                + ", phone='" + getPhone() + "'"
+                + ", commissionRate='" + getcommissionRate() + "'"
+                + "}";
     }
-    
-
 }
