@@ -40,7 +40,7 @@ public class ProductController {
         return ProductResponse.fromEntity(saved);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/id/{id}")
     @ResponseStatus(HttpStatus.OK)
     public ProductResponse getProductById(@PathVariable Long id) {
         Product product = productService.getProductById(id);
@@ -55,6 +55,17 @@ public class ProductController {
         return ResponseEntity.ok(productService.getAllProducts()
                 .stream().map(ProductResponse::fromEntity)
                 .collect(Collectors.toList())
+        );
+    }
+
+    @GetMapping("/name/{name}")
+    public ResponseEntity<List<ProductResponse>> findProductsByName( @PathVariable String name) {
+        if (productService.getProductsByName(name).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(productService.getProductsByName(name)
+                .stream().map(ProductResponse::fromEntity)
+                .collect(Collectors.toList())        
         );
     }
 

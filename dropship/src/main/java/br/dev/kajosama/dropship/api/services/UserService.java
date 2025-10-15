@@ -4,6 +4,7 @@
  */
 package br.dev.kajosama.dropship.api.services;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,6 +26,7 @@ import br.dev.kajosama.dropship.api.mappers.UserMapper;
 import br.dev.kajosama.dropship.api.payloads.requests.AccountUpdateRequest;
 import br.dev.kajosama.dropship.api.payloads.requests.StatusUpdateRequest;
 import br.dev.kajosama.dropship.domain.model.entities.User;
+import br.dev.kajosama.dropship.domain.model.enums.AccountStatus;
 import br.dev.kajosama.dropship.domain.repositories.UserRepository;
 import br.dev.kajosama.dropship.domain.validators.PhoneValidator;
 import br.dev.kajosama.dropship.security.entities.Role;
@@ -148,7 +150,9 @@ public class UserService {
 
         tokenService.invalidateAllUserTokens(id);
 
-        userRepository.softDeleteById(id);
+        user.setStatus(AccountStatus.DELETED);
+        user.setDeletedAt(LocalDateTime.now());
+        
         userRepository.updateLastExit(id);
     }
 

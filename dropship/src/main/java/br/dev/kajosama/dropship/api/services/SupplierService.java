@@ -1,5 +1,8 @@
 package br.dev.kajosama.dropship.api.services;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,13 +53,18 @@ public class SupplierService {
         }
     }
 
+    /*
+    public List<SupplierResponse> findAllSupplier() {
+        return supplierRepository.findAll().forEach(action);
+    }
+ */
     public SupplierResponse registerPrimarySupplier(SupplierRegisterRequest request) {
 
         existsByEmail(request.supplier().email());
         existsByCnpj(request.supplier().cnpj());
         
         Role role = roleRepository.findByName("ROLE_SUPPLIER_PRIMARY")
-                .orElseThrow(() -> new EntityNotFoundException("Role USER Not Found"));
+                .orElseThrow(() -> new EntityNotFoundException("Role SUPPLIER_PRIMARY Not Found"));
 
         User u = request.user();
         u.setStatus(AccountStatus.PENDING);
@@ -83,6 +91,14 @@ public class SupplierService {
 
         return SupplierResponse.fromEntity(s);
 
+    }
+
+    public void softDelete(Long id) {
+        Supplier s = supplierRepository.findById(id)
+            .orElseThrow(() -> new EntityNotFoundException("Supplier with ID: {" + id + "} NOT FOUND"));
+    
+        s.setStatus(AccountStatus.DELETED);
+        s.setDeletedAt(LocalDateTime.now());
     }
 
 }

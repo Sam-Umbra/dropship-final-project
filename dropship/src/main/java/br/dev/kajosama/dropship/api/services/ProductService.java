@@ -23,7 +23,7 @@ public class ProductService {
 
     public Product getProductById(Long id) {
         return productRepo.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Product with ID: {" + id + "} NOT FOUND"));
+                .orElseThrow(() -> new EntityNotFoundException("Product with ID: {" + id + "} NOT FOUND"));
     }
 
     public List<Product> getAllProducts() {
@@ -35,7 +35,7 @@ public class ProductService {
     }
 
     public void deleteProduct(Long id) {
-        if(!existsById(id)) {
+        if (!existsById(id)) {
             throw new EntityNotFoundException("Product with ID: {" + id + "} NOT FOUND");
         }
         productRepo.deleteById(id);
@@ -45,10 +45,13 @@ public class ProductService {
         return productRepo.findByCategoryId(id);
     }
 
+    public List<Product> getProductsByName(String name) {
+        return productRepo.findByNameContainingIgnoreCase(name);
+    }
+
     /*
      * IMPLEMENTAR SEGURANÇA NA MANIPULAÇÃO DE PRODUTOS
      * SÓ DEVE SER PERMITIDO FAZER ALTERAÇÕES EM UM PRODUTO CASO O USUÁRIO
      * SEJA O FORNECEDOR DO PRODUTO
      */
-
 }
