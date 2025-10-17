@@ -53,11 +53,29 @@ public class SupplierService {
         }
     }
 
-    /*
+    
     public List<SupplierResponse> findAllSupplier() {
-        return supplierRepository.findAll().forEach(action);
+        if(supplierRepository.findAll().isEmpty()) {
+            throw new EntityNotFoundException("No suppliers found");
+        }
+        List<Supplier> suppliers = supplierRepository.findAll();
+        return SupplierResponse.fromEntityList(suppliers);
     }
- */
+
+    public SupplierResponse findSupplierbyId(Long id) {
+        Supplier supplier = supplierRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Supplier with ID: {" + id + "} NOT FOUND"));
+        return SupplierResponse.fromEntity(supplier);
+    }
+
+    public List<SupplierResponse> findSuppliersByName(String name) {
+        if(supplierRepository.findByNameIgnoreCaseContaining(name).isEmpty()) {
+            throw new EntityNotFoundException("No suppliers found");
+        }
+        List<Supplier> suppliers = supplierRepository.findByNameIgnoreCaseContaining(name);
+        return SupplierResponse.fromEntityList(suppliers);
+    }
+ 
     public SupplierResponse registerPrimarySupplier(SupplierRegisterRequest request) {
 
         existsByEmail(request.supplier().email());
@@ -69,7 +87,6 @@ public class SupplierService {
         User u = request.user();
         u.setStatus(AccountStatus.PENDING);
         u.addRole(role);
-
         userService.registerAccount(u, u.getPassword());
 
         Supplier s = new Supplier();
@@ -99,6 +116,7 @@ public class SupplierService {
     
         s.setStatus(AccountStatus.DELETED);
         s.setDeletedAt(LocalDateTime.now());
+        supplierRepository.save(s);
     }
 
 }

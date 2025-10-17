@@ -1,6 +1,8 @@
 package br.dev.kajosama.dropship.api.payloads.responses;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import br.dev.kajosama.dropship.domain.model.entities.Supplier;
 import br.dev.kajosama.dropship.domain.model.entities.SupplierUser;
@@ -52,5 +54,14 @@ public record SupplierResponse(
                 primaryUser
         );
 
+    }
+
+    public static List<SupplierResponse> fromEntityList(List<Supplier> suppliers) {
+        if (suppliers == null) {
+            return List.of();
+        }
+        return suppliers.stream()
+                .map(SupplierResponse::fromEntity)
+                .collect(Collectors.toList());
     }
 }
