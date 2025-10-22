@@ -9,7 +9,7 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.ReportingPolicy;
 
-import br.dev.kajosama.dropship.api.payloads.requests.ProductRequest;
+import br.dev.kajosama.dropship.api.payloads.requests.ProductUpdateRequest;
 import br.dev.kajosama.dropship.domain.model.entities.Product;
 import br.dev.kajosama.dropship.domain.model.objects.Price;
 
@@ -20,7 +20,7 @@ public interface ProductMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(source = "price", target = "price")
-    void updateProductFromDto(ProductRequest dto, @MappingTarget Product entity);
+    void updateProductFromDto(ProductUpdateRequest dto, @MappingTarget Product entity);
 
     default Price map(BigDecimal value) {
         if (value == null) {

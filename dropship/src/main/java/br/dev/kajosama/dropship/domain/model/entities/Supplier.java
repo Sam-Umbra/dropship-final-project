@@ -70,6 +70,7 @@ public class Supplier {
     private LocalDateTime deletedAt;
 
     @NotNull
+    @Enumerated(EnumType.STRING)
     private AccountStatus status;
 
     @NotBlank
@@ -89,6 +90,9 @@ public class Supplier {
 
     @OneToMany(mappedBy = "supplier", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<SupplierUser> supplierUsers = new ArrayList<>();
+
+    @OneToMany(mappedBy = "supplier", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Product> products = new ArrayList<>();
 
     public Supplier() {
     }
@@ -284,6 +288,14 @@ public class Supplier {
 
     public void setSupplierUsers(List<SupplierUser> supplierUsers) {
         this.supplierUsers = supplierUsers;
+    }
+
+    public List<Product> getProducts() {
+        return products;
+    }
+
+    public void setProducts(List<Product> products) {
+        this.products = products;
     }
 
     @Override

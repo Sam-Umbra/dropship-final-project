@@ -17,7 +17,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.dev.kajosama.dropship.api.mappers.ProductMapper;
-import br.dev.kajosama.dropship.api.payloads.requests.ProductRequest;
+import br.dev.kajosama.dropship.api.payloads.requests.ProductRegisterRequest;
+import br.dev.kajosama.dropship.api.payloads.requests.ProductUpdateRequest;
 import br.dev.kajosama.dropship.api.payloads.responses.ProductResponse;
 import br.dev.kajosama.dropship.api.services.ProductService;
 import br.dev.kajosama.dropship.domain.model.entities.Product;
@@ -35,8 +36,8 @@ public class ProductController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ProductResponse registerProduct(@Valid @RequestBody Product product) {
-        Product saved = productService.saveProduct(product);
+    public ProductResponse registerProduct(@Valid @RequestBody ProductRegisterRequest request) {
+        Product saved = productService.registerProduct(request);
         return ProductResponse.fromEntity(saved);
     }
 
@@ -69,23 +70,6 @@ public class ProductController {
         );
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-        productService.deleteProduct(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PatchMapping("/{id}")
-    public ResponseEntity<ProductResponse> updateProduct(@PathVariable Long id, @RequestBody @Valid ProductRequest request) {
-
-        Product p = productService.getProductById(id);
-        productMapper.updateProductFromDto(request, p);
-        productService.saveProduct(p);
-
-        return ResponseEntity.ok(ProductResponse.fromEntity(p));
-
-    }
-
     @GetMapping("/category/{id}")
     public ResponseEntity<List<ProductResponse>> getProductsByCategoryId(@PathVariable Long id) {
         if (productService.getProductByCategoryId(id).isEmpty()) {
@@ -96,6 +80,47 @@ public class ProductController {
                 .map(ProductResponse::fromEntity)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(list);
+    }
+
+    @GetMapping("/supplier/id/{id}")
+    public ResponseEntity<List<ProductResponse>> getProductsBySupplierId(@PathVariable Long id) {
+        if (productService.getProductsBySupplierId(id).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        var productList = productService.getProductsBySupplierId(id)
+                .stream()
+                .map(ProductResponse::fromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(productList);
+    }
+
+    @GetMapping("/supplier/name/{name}")
+    public ResponseEntity<List<ProductResponse>> getProductsBySupplierId(@PathVariable String name) {
+        if (productService.getProductsBySupplierName(name).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        var productList = productService.getProductsBySupplierName(name)
+                .stream()
+                .map(ProductResponse::fromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(productList);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+        productService.deleteProduct(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<ProductResponse> updateProduct(@PathVariable Long id, @RequestBody @Valid ProductUpdateRequest request) {
+
+        Product p = productService.getProductById(id);
+        productMapper.updateProductFromDto(request, p);
+        productService.saveProduct(p);
+
+        return ResponseEntity.ok(ProductResponse.fromEntity(p));
+
     }
 
 }

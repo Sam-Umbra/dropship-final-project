@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
 import br.dev.kajosama.dropship.domain.model.entities.Product;
 import br.dev.kajosama.dropship.domain.model.enums.ProductStatus;
 
@@ -17,6 +18,8 @@ public record ProductResponse(
     ProductStatus status,
     BigDecimal discount,
     String imgUrl,
+    Long supplierId,
+    String supplierName,
     List<CategorySummary> categories
 ) {
     public static ProductResponse fromEntity(Product product) {
@@ -39,6 +42,8 @@ public record ProductResponse(
                 product.getStatus(),
                 product.getDiscount(),
                 product.getImgUrl(),
+                product.getSupplier().getId(),
+                product.getSupplier().getName(),
                 merged
         );
     }

@@ -19,4 +19,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("SELECT p FROM Product p JOIN p.categories c WHERE c.id = :categoryId")
     List<Product> findByCategoryId(Long categoryId);
 
+    @Query("SELECT p FROM Product p WHERE p.supplier.id = :supplierId")
+    List<Product> findBySupplierId(Long supplierId);
+
+    @Query("""
+       SELECT p 
+       FROM Product p 
+       WHERE LOWER(p.supplier.name) LIKE LOWER(CONCAT('%', :supplierName, '%'))
+       """)
+    List<Product> findBySupplierNameContainingIgnoreCase(String supplierName);
+
 }

@@ -22,6 +22,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -38,9 +39,10 @@ public class Product {
     @Column(name = "product_id")
     private Long id;
 
-    /*
-     * private Long supplierId;
-     */
+    @ManyToOne
+    @JoinColumn(name = "supplier_id")
+    private Supplier supplier;
+
     @NotBlank
     @Size(max = 80, min = 5)
     @Column(name = "product_name", nullable = false, length = 80)
@@ -180,4 +182,12 @@ public class Product {
         this.categories = categories;
     }
 
+    public Supplier getSupplier() {
+        return this.supplier;
+    }
+
+    public void setSupplier(Supplier supplier) {
+        this.supplier = supplier;
+    }
+    
 }
