@@ -1,14 +1,21 @@
 package br.dev.kajosama.dropship.api.services;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import br.dev.kajosama.dropship.api.payloads.requests.ProductRegisterRequest;
 import br.dev.kajosama.dropship.domain.model.entities.Product;
+import br.dev.kajosama.dropship.domain.model.entities.User;
+import br.dev.kajosama.dropship.domain.model.enums.ProductStatus;
 import br.dev.kajosama.dropship.domain.model.objects.Price;
 import br.dev.kajosama.dropship.domain.repositories.CategoryRepository;
 import br.dev.kajosama.dropship.domain.repositories.ProductRepository;
@@ -71,10 +78,13 @@ public class ProductService {
     }
 
     public void deleteProduct(Long id) {
-        if (!existsById(id)) {
-            throw new EntityNotFoundException("Product with ID: {" + id + "} NOT FOUND");
-        }
-        productRepo.deleteById(id);
+        var product = productRepo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Product with id: {" + id + "} NOT FOUND"));
+
+        verifyIfSupplierMatcherUserAndProduct(product);
+
+        product.setStatus(ProductStatus.INACTIVE);
+        saveProduct(product);
     }
 
     public List<Product> getProductByCategoryId(Long id) {
@@ -93,9 +103,27 @@ public class ProductService {
         return productRepo.findBySupplierNameContainingIgnoreCase(name);
     }
 
-    /*
-     * IMPLEMENTAR SEGURANÇA NA MANIPULAÇÃO DE PRODUTOS
-     * SÓ DEVE SER PERMITIDO FAZER ALTERAÇÕES EM UM PRODUTO CASO O USUÁRIO
-     * SEJA O FORNECEDOR DO PRODUTO
-     */
+    public void verifyIfSupplierMatcherUserAndProduct(Product product) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) auth.getPrincipal();
+
+        var supplier = product.getSupplier();
+        if (supplier == null) {
+            throw new EntityNotFoundException("There is no supplier for the product");
+        }
+
+        boolean isSupplierUser = Optional.ofNullable(supplier.getSupplierUsers())
+                .orElse(Collections.emptyList())
+                .stream()
+                .anyMatch(su -> su.getUser().getId().equals(currentUser.getId()));
+
+        if (!isSupplierUser && !currentUser.hasRole("ADMIN")) {
+            throw new AccessDeniedException(String.format(
+                    "User '%s' cannot modify product '%s' from supplier '%s' unless they are an ADMIN",
+                    currentUser.getName(),
+                    product.getName(),
+                    supplier.getName()
+            ));
+        }
+    }
 }

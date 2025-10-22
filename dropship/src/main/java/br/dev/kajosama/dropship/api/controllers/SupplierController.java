@@ -31,6 +31,12 @@ public class SupplierController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/{supplierId}")
+    public ResponseEntity<Void> addSupplier(@PathVariable Long supplierId, @RequestBody List<Long> ids) {
+        supplierService.registerUserToSupplier(supplierId, ids);
+        return ResponseEntity.accepted().build();
+    }
+
     @GetMapping
     public ResponseEntity<List<SupplierResponse>> findAllSuppliers() {
         List<SupplierResponse> responses = supplierService.findAllSupplier();

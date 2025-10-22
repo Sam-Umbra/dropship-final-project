@@ -4,6 +4,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,9 +56,8 @@ public class SupplierService {
         }
     }
 
-    
     public List<SupplierResponse> findAllSupplier() {
-        if(supplierRepository.findAll().isEmpty()) {
+        if (supplierRepository.findAll().isEmpty()) {
             throw new EntityNotFoundException("No suppliers found");
         }
         List<Supplier> suppliers = supplierRepository.findAll();
@@ -69,18 +71,18 @@ public class SupplierService {
     }
 
     public List<SupplierResponse> findSuppliersByName(String name) {
-        if(supplierRepository.findByNameIgnoreCaseContaining(name).isEmpty()) {
+        if (supplierRepository.findByNameIgnoreCaseContaining(name).isEmpty()) {
             throw new EntityNotFoundException("No suppliers found");
         }
         List<Supplier> suppliers = supplierRepository.findByNameIgnoreCaseContaining(name);
         return SupplierResponse.fromEntityList(suppliers);
     }
- 
+
     public SupplierResponse registerPrimarySupplier(SupplierRegisterRequest request) {
 
         existsByEmail(request.supplier().email());
         existsByCnpj(request.supplier().cnpj());
-        
+
         Role role = roleRepository.findByName("ROLE_SUPPLIER_PRIMARY")
                 .orElseThrow(() -> new EntityNotFoundException("Role SUPPLIER_PRIMARY Not Found"));
 
@@ -110,10 +112,61 @@ public class SupplierService {
 
     }
 
+    @Transactional
+    public void registerUserToSupplier(Long supplierId, List<Long> userIds) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) auth.getPrincipal();
+
+        Supplier supplier = supplierRepository.findById(supplierId)
+                .orElseThrow(() -> new EntityNotFoundException("Supplier with ID " + supplierId + " not found"));
+
+        boolean isPrimarySupplierUser = supplier.getSupplierUsers().stream()
+                .anyMatch(su
+                        -> su.getUser().getId().equals(currentUser.getId())
+                && currentUser.hasRole("ROLE_SUPPLIER_PRIMARY")
+                );
+
+        if (!isPrimarySupplierUser && !currentUser.hasRole("ADMIN")) {
+            throw new AccessDeniedException(String.format(
+                    "User '%s' cannot add users to supplier '%s' unless they are an ADMIN or the PRIMARY Supplier.",
+                    currentUser.getName(),
+                    supplier.getName()
+            ));
+        }
+
+        List<User> users = userService.getAllUserById(userIds);
+        if (users.isEmpty()) {
+            throw new EntityNotFoundException("No valid users found for the provided IDs");
+        }
+
+        Role supplierRole = roleRepository.findByName("ROLE_SUPPLIER")
+                .orElseThrow(() -> new EntityNotFoundException("Role SUPPLIER not found"));
+
+        for (User user : users) {
+            if (!user.hasRole("ROLE_SUPPLIER")) {
+                user.addRole(supplierRole);
+                userService.saveUser(user);
+            }
+
+            boolean alreadyAssociated = supplier.getSupplierUsers().stream()
+                    .anyMatch(su -> su.getUser().getId().equals(user.getId()));
+
+            if (!alreadyAssociated) {
+                SupplierUser su = new SupplierUser();
+                su.setSupplier(supplier);
+                su.setUser(user);
+                supplier.getSupplierUsers().add(su);
+                supplierUserRepository.save(su);
+            }
+        }
+
+        supplierRepository.save(supplier);
+    }
+
     public void softDelete(Long id) {
         Supplier s = supplierRepository.findById(id)
-            .orElseThrow(() -> new EntityNotFoundException("Supplier with ID: {" + id + "} NOT FOUND"));
-    
+                .orElseThrow(() -> new EntityNotFoundException("Supplier with ID: {" + id + "} NOT FOUND"));
+
         s.setStatus(AccountStatus.DELETED);
         s.setDeletedAt(LocalDateTime.now());
         supplierRepository.save(s);

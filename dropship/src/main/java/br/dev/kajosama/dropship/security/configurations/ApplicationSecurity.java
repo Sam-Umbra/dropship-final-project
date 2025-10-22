@@ -99,7 +99,7 @@ public class ApplicationSecurity {
                 // User
                 .requestMatchers(HttpMethod.POST, "/user").permitAll()
                 // Product
-                .requestMatchers(HttpMethod.GET, "/product/**").permitAll()
+                .requestMatchers("/product/**").permitAll()
                 // Category
                 .requestMatchers(HttpMethod.GET, "/categories/**").permitAll()
                 // Admin

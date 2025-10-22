@@ -78,6 +78,14 @@ public class UserService {
         return userRepository.findAll();
     }
 
+    public List<User> getAllUserById(List<Long> ids) {
+        return userRepository.findAllById(ids);
+    }
+
+    public User saveUser(User user) {
+        return userRepository.save(user);
+    }
+
     public User registerAccount(User user, String rawPassword) {
 
         if (userRepository.existsByEmail(user.getEmail())) {
@@ -93,7 +101,7 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("Role USER Not Found"));
         user.addRole(role);
 
-        return userRepository.save(user);
+        return saveUser(user);
     }
 
     public void updateAccount(Long id, AccountUpdateRequest request) {

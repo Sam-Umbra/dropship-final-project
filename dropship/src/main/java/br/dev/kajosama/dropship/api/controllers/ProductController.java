@@ -60,13 +60,13 @@ public class ProductController {
     }
 
     @GetMapping("/name/{name}")
-    public ResponseEntity<List<ProductResponse>> findProductsByName( @PathVariable String name) {
+    public ResponseEntity<List<ProductResponse>> findProductsByName(@PathVariable String name) {
         if (productService.getProductsByName(name).isEmpty()) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(productService.getProductsByName(name)
                 .stream().map(ProductResponse::fromEntity)
-                .collect(Collectors.toList())        
+                .collect(Collectors.toList())
         );
     }
 
@@ -116,11 +116,11 @@ public class ProductController {
     public ResponseEntity<ProductResponse> updateProduct(@PathVariable Long id, @RequestBody @Valid ProductUpdateRequest request) {
 
         Product p = productService.getProductById(id);
+        productService.verifyIfSupplierMatcherUserAndProduct(p);
         productMapper.updateProductFromDto(request, p);
         productService.saveProduct(p);
 
         return ResponseEntity.ok(ProductResponse.fromEntity(p));
-
     }
 
 }
