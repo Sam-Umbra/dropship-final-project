@@ -106,7 +106,9 @@ public class UserService {
 
     public void updateAccount(Long id, AccountUpdateRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = (User) auth.getPrincipal();
+        if (!(auth.getPrincipal() instanceof User currentUser)) {
+            throw new AccessDeniedException("User not found or invalid token");
+        }
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User with ID: " + id + " not found"));
@@ -128,23 +130,27 @@ public class UserService {
         userMapper.updateUserFromDto(request, user);
 
         Optional.ofNullable(request)
-                .map(AccountUpdateRequest::phone)
-                .filter(p -> !p.isBlank())
-                .ifPresent(p -> {
-                    try {
-                        String normalizedPhone = PhoneValidator.normalizeToE164(p, "BR");
-                        user.setPhone(normalizedPhone);
-                    } catch (NumberParseException e) {
-                        throw new IllegalArgumentException("Invalid phone number:" + p);
-                    }
-                });
+        .map(AccountUpdateRequest::phone)
+        .filter(p -> !p.isBlank())
+        .ifPresent(p -> {
+            String phoneWithDDI = p.startsWith("55") ? "+" + p : "+55" + p;
+            try {
+                String normalizedPhone = PhoneValidator.normalizeToE164(phoneWithDDI, "BR");
+                user.setPhone(normalizedPhone);
+            } catch (NumberParseException e) {
+                throw new IllegalArgumentException("Invalid phone number: " + p);
+            }
+        });
+
 
         userRepository.save(user);
     }
 
     public void deleteAccount(Long id) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = (User) auth.getPrincipal();
+        if (!(auth.getPrincipal() instanceof User currentUser)) {
+            throw new AccessDeniedException("User not found or invalid token");
+        }
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User with ID: " + id + " not found"));
@@ -158,15 +164,18 @@ public class UserService {
 
         tokenService.invalidateAllUserTokens(id);
 
-        user.setStatus(AccountStatus.DELETED);
-        user.setDeletedAt(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+
+        userRepository.softDelete(id, AccountStatus.DELETED, now, now);
         
         userRepository.updateLastExit(id);
     }
 
     public void updateStatus(Long id, StatusUpdateRequest status) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = (User) auth.getPrincipal();
+        if (!(auth.getPrincipal() instanceof User currentUser)) {
+            throw new AccessDeniedException("User not found or invalid token");
+        }
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User with ID: " + id + " not found"));

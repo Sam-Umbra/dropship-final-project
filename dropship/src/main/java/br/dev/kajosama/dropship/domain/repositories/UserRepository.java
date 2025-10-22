@@ -4,6 +4,7 @@
  */
 package br.dev.kajosama.dropship.domain.repositories;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -60,9 +61,19 @@ public interface UserRepository extends JpaRepository<User, Long> {
     void updateLastExit(@Param("userId") Long userId);
 
     @Modifying
-    @Transactional
-    @Query("UPDATE User u SET u.deletedAt = CURRENT_TIMESTAMP, u.status = 'DELETED' WHERE u.id = :id")
-    void softDeleteById(@Param("id") Long id);
+    @Query("""
+    UPDATE User u 
+       SET u.status = :status, 
+           u.deletedAt = :deletedAt,
+           u.updatedAt = :updatedAt
+     WHERE u.id = :id
+    """)
+    void softDelete(
+            @Param("id") Long id,
+            @Param("status") AccountStatus status,
+            @Param("deletedAt") LocalDateTime deletedAt,
+            @Param("updatedAt") LocalDateTime updatedAt
+    );
 
     @Modifying
     @Transactional

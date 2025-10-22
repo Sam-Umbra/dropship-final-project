@@ -105,7 +105,9 @@ public class ProductService {
 
     public void verifyIfSupplierMatcherUserAndProduct(Product product) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = (User) auth.getPrincipal();
+        if (!(auth.getPrincipal() instanceof User currentUser)) {
+            throw new AccessDeniedException("User not found or invalid token");
+        }
 
         var supplier = product.getSupplier();
         if (supplier == null) {

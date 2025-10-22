@@ -87,8 +87,8 @@ public class User implements UserDetails {
     private String cpf;
 
     @NotBlank
-    @Size(max = 15, min = 10)
-    @Column(nullable = false, length = 15)
+    @Size(max = 16, min = 10)
+    @Column(nullable = false, length = 16)
     @ValidPhone
     private String phone;
 
@@ -157,8 +157,8 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return this.status == AccountStatus.ACTIVE
-                && this.emailVerifiedAt != null;
+        return this.status == AccountStatus.ACTIVE;
+                //&& this.emailVerifiedAt != null;
     }
 
     // ==================== MÉTODOS DE CONVENIÊNCIA ====================
