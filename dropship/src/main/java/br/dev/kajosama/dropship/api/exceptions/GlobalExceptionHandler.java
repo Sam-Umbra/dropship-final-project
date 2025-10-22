@@ -3,6 +3,8 @@ package br.dev.kajosama.dropship.api.exceptions;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,8 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationErrors(MethodArgumentNotValidException ex,
@@ -54,8 +58,23 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TransactionSystemException.class)
     public ResponseEntity<ErrorResponse> handleTransactionSystemException(TransactionSystemException ex,
             HttpServletRequest request) {
-        return buildResponse(HttpStatus.BAD_REQUEST, "Transaction Error", "Transaction errors with database",
-                request.getRequestURI(), null);
+
+        // Pega a causa raiz (SQLException, ConstraintViolationException etc.)
+        Throwable rootCause = ex.getRootCause();
+
+        // Mensagem a retornar: se houver rootCause, pega a mensagem dela, senão usa a da exceção
+        String message = rootCause != null ? rootCause.getMessage() : ex.getMessage();
+
+        // Loga para debug detalhado
+        log.error("Transaction failed", rootCause != null ? rootCause : ex);
+
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "Transaction Error",
+                message, // aqui você envia a mensagem real do erro
+                request.getRequestURI(),
+                null
+        );
     }
 
     @ExceptionHandler(AccessDeniedException.class)

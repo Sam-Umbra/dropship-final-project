@@ -24,5 +24,6 @@ public interface UserMapper {
     @Mapping(target = "lastLogin", ignore = true)
     @Mapping(target = "lastExit", ignore = true)
     @Mapping(target = "userRoles", ignore = true)
+    @Mapping(target = "phone", ignore = true)
     void updateUserFromDto(AccountUpdateRequest dto, @MappingTarget User entity);
 }

@@ -32,8 +32,8 @@ CREATE TABLE users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO users (user_id, name, email, password, created_at, cpf, phone, status, birth_date, email_verified_at) VALUES
-(1, 'João Silva', 'joao.silva@email.com', '$2a$10$odd29HJ1aXK/5MIYHO2rbu9O1apPF03KRmhx940iy3GZ5Oamwpg4y', NOW(), '12345678901', '+5511987654321', 'ACTIVE', '1990-05-15', NOW()),
-(2, 'Maria Oliveira', 'maria.oliveira@email.com', '$2a$10$odd29HJ1aXK/5MIYHO2rbu9O1apPF03KRmhx940iy3GZ5Oamwpg4y', NOW(), '98765432109', '+5511911223344', 'ACTIVE', '1985-08-22', NOW()),
+(1, 'João Silva', 'joao.silva@email.com', '$2a$10$odd29HJ1aXK/5MIYHO2rbu9O1apPF03KRmhx940iy3GZ5Oamwpg4y', NOW(), '47389692855', '+5511987654321', 'ACTIVE', '1990-05-15', NOW()),
+(2, 'Maria Oliveira', 'maria.oliveira@email.com', '$2a$10$odd29HJ1aXK/5MIYHO2rbu9O1apPF03KRmhx940iy3GZ5Oamwpg4y', NOW(), '47192352802', '+5511911223344', 'ACTIVE', '1985-08-22', NOW()),
 (3, 'Kaue', 'kaue.pinheiro@email.com', '$2a$10$odd29HJ1aXK/5MIYHO2rbu9O1apPF03KRmhx940iy3GZ5Oamwpg4y', NOW(), '51906649880', '+5511811223344', 'ACTIVE', '1985-08-21', NOW());
 
 

@@ -105,8 +105,10 @@ public class UserService {
     }
 
     public void updateAccount(Long id, AccountUpdateRequest request) {
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (!(auth.getPrincipal() instanceof User currentUser)) {
+        User currentUser = (auth.getPrincipal() instanceof User u) ? u : null;
+        if (currentUser == null) {
             throw new AccessDeniedException("User not found or invalid token");
         }
 
@@ -116,32 +118,31 @@ public class UserService {
         if (user.isAccountDeleted() && !currentUser.hasRole("ADMIN")) {
             throw new AccountDeletedException("You can't modify a deleted account");
         }
+
         if (!currentUser.getEmail().equals(user.getEmail()) && !currentUser.hasRole("ADMIN")) {
             throw new AccessDeniedException("You can only modify your account, unless you're an ADMIN");
         }
 
-        if (request.email() != null && userRepository.existsByEmailAndIdNot(request.email(), id)) {
-            throw new EntityAlreadyExistsException("User", "email", request.email());
-        }
-        if (request.cpf() != null && userRepository.existsByCpfAndIdNot(request.cpf(), id)) {
-            throw new EntityAlreadyExistsException("User", "cpf", request.cpf());
+        if (request.email() != null) {
+            boolean emailExists = userRepository.existsByEmailAndIdNot(request.email(), id);
+            if (emailExists) {
+                throw new EntityAlreadyExistsException("User", "email", request.email());
+            }
         }
 
         userMapper.updateUserFromDto(request, user);
 
-        Optional.ofNullable(request)
-        .map(AccountUpdateRequest::phone)
-        .filter(p -> !p.isBlank())
-        .ifPresent(p -> {
-            String phoneWithDDI = p.startsWith("55") ? "+" + p : "+55" + p;
-            try {
-                String normalizedPhone = PhoneValidator.normalizeToE164(phoneWithDDI, "BR");
-                user.setPhone(normalizedPhone);
-            } catch (NumberParseException e) {
-                throw new IllegalArgumentException("Invalid phone number: " + p);
-            }
-        });
-
+        Optional.ofNullable(request.phone())
+                .filter(p -> !p.isBlank())
+                .ifPresent(p -> {
+                    String phoneWithDDI = p.startsWith("+55") ? p : "+55" + p;
+                    try {
+                        String normalizedPhone = PhoneValidator.normalizeToE164(phoneWithDDI, "BR");
+                        user.setPhone(normalizedPhone);
+                    } catch (NumberParseException e) {
+                        throw new IllegalArgumentException("Invalid phone number: " + p, e);
+                    }
+                });
 
         userRepository.save(user);
     }
@@ -167,7 +168,7 @@ public class UserService {
         LocalDateTime now = LocalDateTime.now();
 
         userRepository.softDelete(id, AccountStatus.DELETED, now, now);
-        
+
         userRepository.updateLastExit(id);
     }
 
