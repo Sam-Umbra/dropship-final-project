@@ -3,7 +3,6 @@ package br.dev.kajosama.dropship.api.payloads.requests;
 import java.math.BigDecimal;
 import java.util.List;
 
-import br.dev.kajosama.dropship.domain.model.enums.ProductStatus;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -21,8 +20,6 @@ public record ProductRegisterRequest(
         BigDecimal price,
         @NotNull
         Integer stock,
-        @NotNull
-        ProductStatus status,
         @NotBlank
         String imgUrl,
         @DecimalMin(value = "0.0", inclusive = true)

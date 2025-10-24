@@ -157,8 +157,8 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return this.status == AccountStatus.ACTIVE;
-                //&& this.emailVerifiedAt != null;
+        return this.status == AccountStatus.ACTIVE
+                && this.emailVerifiedAt != null;
     }
 
     // ==================== MÉTODOS DE CONVENIÊNCIA ====================

@@ -115,23 +115,23 @@ public class SupplierService {
     @Transactional
     public void registerUserToSupplier(Long supplierId, List<Long> userIds) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = (User) auth.getPrincipal();
+        if (!(auth.getPrincipal() instanceof User currentUser)) {
+            throw new AccessDeniedException("Current User not found or invalid token");
+        }
 
         Supplier supplier = supplierRepository.findById(supplierId)
                 .orElseThrow(() -> new EntityNotFoundException("Supplier with ID " + supplierId + " not found"));
 
-        boolean isPrimarySupplierUser = supplier.getSupplierUsers().stream()
-                .anyMatch(su
-                        -> su.getUser().getId().equals(currentUser.getId())
-                && currentUser.hasRole("ROLE_SUPPLIER_PRIMARY")
-                );
+        boolean isPrimarySupplierUserActive = supplier.getStatus().equals(AccountStatus.ACTIVE)
+                && supplier.getSupplierUsers().stream()
+                        .anyMatch(su -> su.getUser().getId().equals(currentUser.getId())
+                                && currentUser.hasRole("ROLE_SUPPLIER_PRIMARY"));
 
-        if (!isPrimarySupplierUser && !currentUser.hasRole("ADMIN")) {
+        if (!isPrimarySupplierUserActive && !currentUser.hasRole("ADMIN")) {
             throw new AccessDeniedException(String.format(
-                    "User '%s' cannot add users to supplier '%s' unless they are an ADMIN or the PRIMARY Supplier.",
+                    "User '%s' cannot add users to supplier '%s' unless they are an ADMIN or the PRIMARY Supplier, also the user or the supplier must have an Active account.",
                     currentUser.getName(),
-                    supplier.getName()
-            ));
+                    supplier.getName()));
         }
 
         List<User> users = userService.getAllUserById(userIds);
@@ -164,8 +164,25 @@ public class SupplierService {
     }
 
     public void softDelete(Long id) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!(auth.getPrincipal() instanceof User currentUser)) {
+            throw new AccessDeniedException("Current User not found or invalid token");
+        }
+
         Supplier s = supplierRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Supplier with ID: {" + id + "} NOT FOUND"));
+
+        boolean isPrimarySupplierUserActive = s.getStatus().equals(AccountStatus.ACTIVE)
+                && s.getSupplierUsers().stream()
+                        .anyMatch(su -> su.getUser().getId().equals(currentUser.getId())
+                                && currentUser.hasRole("ROLE_SUPPLIER_PRIMARY"));
+
+        if (!isPrimarySupplierUserActive && !currentUser.hasRole("ADMIN")) {
+            throw new AccessDeniedException(String.format(
+                    "User '%s' cannot delete supplier '%s' unless they are an ADMIN or the PRIMARY Supplier, also the user or the supplier must have an Active account.",
+                    currentUser.getName(),
+                    s.getName()));
+        }
 
         s.setStatus(AccountStatus.DELETED);
         s.setDeletedAt(LocalDateTime.now());

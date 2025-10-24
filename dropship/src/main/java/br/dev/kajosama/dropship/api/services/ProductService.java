@@ -13,8 +13,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import br.dev.kajosama.dropship.api.payloads.requests.ProductRegisterRequest;
+import br.dev.kajosama.dropship.domain.model.entities.Category;
 import br.dev.kajosama.dropship.domain.model.entities.Product;
+import br.dev.kajosama.dropship.domain.model.entities.Supplier;
 import br.dev.kajosama.dropship.domain.model.entities.User;
+import br.dev.kajosama.dropship.domain.model.enums.AccountStatus;
 import br.dev.kajosama.dropship.domain.model.enums.ProductStatus;
 import br.dev.kajosama.dropship.domain.model.objects.Price;
 import br.dev.kajosama.dropship.domain.repositories.CategoryRepository;
@@ -53,10 +56,12 @@ public class ProductService {
     }
 
     public Product registerProduct(ProductRegisterRequest request) {
-        var supplier = supplierRepo.findById(request.supplierId())
-                .orElseThrow(() -> new EntityNotFoundException("Supplier with the id: {" + request.supplierId() + "} NOT FOUND"));
 
-        var categories = categoryRepo.findAllById(request.categoryIds());
+        Supplier supplier = supplierRepo.findById(request.supplierId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Supplier with the id: {" + request.supplierId() + "} NOT FOUND"));
+
+        List<Category> categories = categoryRepo.findAllById(request.categoryIds());
         if (categories.isEmpty()) {
             throw new EntityNotFoundException("No categories with the ids: {" + request.categoryIds() + "} found");
         }
@@ -66,11 +71,10 @@ public class ProductService {
                 request.description(),
                 new Price(request.price()),
                 request.stock(),
-                request.status(),
                 request.imgUrl(),
-                request.discount()
-        );
+                request.discount());
 
+        product.setStatus(ProductStatus.ACTIVE);
         product.setSupplier(supplier);
         product.setCategories(new HashSet<>(categories));
 
@@ -78,7 +82,7 @@ public class ProductService {
     }
 
     public void deleteProduct(Long id) {
-        var product = productRepo.findById(id)
+        Product product = productRepo.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Product with id: {" + id + "} NOT FOUND"));
 
         verifyIfSupplierMatcherUserAndProduct(product);
@@ -109,23 +113,23 @@ public class ProductService {
             throw new AccessDeniedException("User not found or invalid token");
         }
 
-        var supplier = product.getSupplier();
+        Supplier supplier = product.getSupplier();
         if (supplier == null) {
             throw new EntityNotFoundException("There is no supplier for the product");
         }
 
-        boolean isSupplierUser = Optional.ofNullable(supplier.getSupplierUsers())
-                .orElse(Collections.emptyList())
-                .stream()
-                .anyMatch(su -> su.getUser().getId().equals(currentUser.getId()));
+        boolean isSupplierUser = supplier.getStatus().equals(AccountStatus.ACTIVE)
+                && Optional.ofNullable(supplier.getSupplierUsers())
+                        .orElse(Collections.emptyList())
+                        .stream()
+                        .anyMatch(su -> su.getUser().getId().equals(currentUser.getId()));
 
         if (!isSupplierUser && !currentUser.hasRole("ADMIN")) {
             throw new AccessDeniedException(String.format(
-                    "User '%s' cannot modify product '%s' from supplier '%s' unless they are an ADMIN",
+                    "User '%s' cannot modify product '%s' from supplier '%s' unless they are an ADMIN and you must have an ACTIVE account",
                     currentUser.getName(),
                     product.getName(),
-                    supplier.getName()
-            ));
+                    supplier.getName()));
         }
     }
 }

@@ -92,12 +92,11 @@ public class Product {
     public Product() {
     }
 
-    public Product(String name, String description, Price price, Integer stock, ProductStatus status, String imgUrl, BigDecimal discount) {
+    public Product(String name, String description, Price price, Integer stock, String imgUrl, BigDecimal discount) {
         this.name = name;
         this.description = description;
         this.price = price;
         this.stock = stock;
-        this.status = status;
         this.imgUrl = imgUrl;
         this.discount = discount;
     }

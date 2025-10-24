@@ -90,21 +90,34 @@ public class ApplicationSecurity {
                 )
                 // Authorization rules
                 .authorizeHttpRequests(authz -> authz
+
                 // Public endpoints
                 .requestMatchers("/auth/login").permitAll()
                 .requestMatchers("/public/**").permitAll()
                 .requestMatchers("/error").permitAll()
+
                 // Allow OPTIONS for CORS preflight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                 // User
                 .requestMatchers(HttpMethod.POST, "/user").permitAll()
+
+                // Supplier
+                .requestMatchers(HttpMethod.POST, "/suppliers").permitAll()
+                .requestMatchers(HttpMethod.GET, "/suppliers").permitAll()
+                .requestMatchers("/suppliers/**").hasAnyRole("SUPPLIER_PRIMARY", "SUPPLIER", "ADMIN")
+
                 // Product
-                .requestMatchers("/product/**").permitAll()
+                .requestMatchers("/product/**").hasAnyRole("SUPPLIER_PRIMARY", "SUPPLIER", "ADMIN")
+
                 // Category
                 .requestMatchers(HttpMethod.GET, "/categories/**").permitAll()
+                .requestMatchers("/categories/**").hasRole("ADMIN")
+
                 // Admin
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/manager/**").hasRole("ADMIN")
+
                 // All other requests need authentication
                 .anyRequest().authenticated()
                 )
