@@ -108,6 +108,7 @@ public class ApplicationSecurity {
                 .requestMatchers("/suppliers/**").hasAnyRole("SUPPLIER_PRIMARY", "SUPPLIER", "ADMIN")
 
                 // Product
+                .requestMatchers(HttpMethod.GET, "/product/**").permitAll()
                 .requestMatchers("/product/**").hasAnyRole("SUPPLIER_PRIMARY", "SUPPLIER", "ADMIN")
 
                 // Category

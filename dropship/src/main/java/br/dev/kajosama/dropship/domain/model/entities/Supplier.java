@@ -10,7 +10,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.validator.constraints.br.CNPJ;
 
-import br.dev.kajosama.dropship.api.listeners.AuditableListener;
 import br.dev.kajosama.dropship.domain.interfaces.Auditable;
 import br.dev.kajosama.dropship.domain.interfaces.ValidPhone;
 import br.dev.kajosama.dropship.domain.model.enums.AccountStatus;
@@ -18,7 +17,6 @@ import br.dev.kajosama.dropship.domain.model.enums.SupplierTier;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
@@ -35,7 +33,6 @@ import jakarta.validation.constraints.Size;
 
 @Entity
 @Table(name = "suppliers")
-@EntityListeners(AuditableListener.class)
 @Auditable
 public class Supplier {
 
@@ -108,7 +105,6 @@ public class Supplier {
         this.approved = approved;
         this.tier = tier;
         this.dbUrl = dbUrl;
-        this.status = status;
         this.email = email;
         this.phone = phone;
         this.commissionRate = commissionRate;

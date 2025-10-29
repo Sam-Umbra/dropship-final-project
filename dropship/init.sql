@@ -61,7 +61,7 @@ CREATE TABLE suppliers (
 
 INSERT INTO suppliers (supplier_name, cnpj, approved, tier, db_url, status, contact_email, contact_phone, commission_rate)
 VALUES
-    ('TechMax Distribuidora', '12.345.678/0001-99', TRUE, 'OFFICIAL', 'jdbc:mysql://db.techmax.com/tech_db', 'ACTIVE', 'contato@techmax.com', '+5511999999999', 12.5);
+    ('TechMax Distribuidora', '47.960.950/0001-21', TRUE, 'OFFICIAL', 'jdbc:mysql://db.techmax.com/tech_db', 'ACTIVE', 'contato@techmax.com', '+5511999999999', 12.5);
 
 -- ======================================
 -- 3. Categorias

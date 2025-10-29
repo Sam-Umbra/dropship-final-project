@@ -11,7 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import br.dev.kajosama.dropship.api.exceptions.EntityAlreadyExistsException;
+import br.dev.kajosama.dropship.api.mappers.SupplierMapper;
 import br.dev.kajosama.dropship.api.payloads.requests.SupplierRegisterRequest;
+import br.dev.kajosama.dropship.api.payloads.requests.SupplierUpdateRequest;
 import br.dev.kajosama.dropship.api.payloads.responses.SupplierResponse;
 import br.dev.kajosama.dropship.domain.model.entities.Supplier;
 import br.dev.kajosama.dropship.domain.model.entities.SupplierUser;
@@ -30,6 +32,9 @@ public class SupplierService {
 
     @Autowired
     private SupplierRepository supplierRepository;
+
+    @Autowired
+    private SupplierMapper supplierMapper;
 
     @Autowired
     private UserService userService;
@@ -110,6 +115,32 @@ public class SupplierService {
 
         return SupplierResponse.fromEntity(s);
 
+    }
+
+    public void updateSupplier(Long id, SupplierUpdateRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!(auth.getPrincipal() instanceof User currentUser)) {
+            throw new AccessDeniedException("Current User not found or invalid token");
+        }
+
+        Supplier supplier = supplierRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Supplier with ID " + id + " not found"));
+
+        boolean isPrimarySupplierUserActive = supplier.getStatus().equals(AccountStatus.ACTIVE)
+                && supplier.getSupplierUsers().stream()
+                        .anyMatch(su -> su.getUser().getId().equals(currentUser.getId())
+                                && currentUser.hasRole("ROLE_SUPPLIER_PRIMARY"));
+
+        if (!isPrimarySupplierUserActive && !currentUser.hasRole("ADMIN")) {
+            throw new AccessDeniedException(String.format(
+                    "User '%s' cannot update supplier '%s' unless they are an ADMIN or the PRIMARY Supplier, also the user or the supplier must have an Active account.",
+                    currentUser.getName(),
+                    supplier.getName()));
+        }
+
+        supplierMapper.updateSupplierFromDto(request, supplier);
+
+        supplierRepository.save(supplier);
     }
 
     @Transactional

@@ -1,6 +1,7 @@
 package br.dev.kajosama.dropship.domain.model.entities;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 import br.dev.kajosama.dropship.domain.model.enums.ActionType;
 import jakarta.persistence.Column;
@@ -25,30 +26,33 @@ public class AuditLog {
     @Column(name = "entity_name", nullable = false, length = 150)
     private String entityName;
 
-    @Column(name = "entity_id")
+    @Column(name = "entity_id", nullable = false)
     private Long entityId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "action_type", nullable = false, length = 50)
     private ActionType actionType;
 
-    @Column(name = "saved_by", length = 200)
+    @Column(name = "saved_by", nullable = false, length = 200)
     private String savedBy;
 
     @Lob
-    @Column(name = "snapshot_json")
+    @Column(name = "snapshot_json", columnDefinition = "LONGTEXT", nullable = false)
     private String snapshotJson;
 
-    @Column(name = "timestamp", nullable = false)
-    private LocalDateTime timestamp = LocalDateTime.now();
+    @Column(name = "timestamp", nullable = false, updatable = false)
+    private LocalDateTime timestamp;
 
     @PrePersist
     protected void onCreate() {
-        if (timestamp == null) {
-            timestamp = LocalDateTime.now();
+        if (this.timestamp == null) {
+            this.timestamp = LocalDateTime.now();
         }
     }
 
+    // ===========================
+    // Construtores
+    // ===========================
     public AuditLog() {
     }
 
@@ -57,11 +61,18 @@ public class AuditLog {
         this.entityId = entityId;
         this.actionType = actionType;
         this.savedBy = savedBy;
-        this.snapshotJson = snapshotJson;
+        this.snapshotJson = snapshotJson != null ? snapshotJson : "{}";
     }
 
+    // ===========================
+    // Getters e Setters
+    // ===========================
     public Long getId() {
         return this.id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getEntityName() {
@@ -112,4 +123,40 @@ public class AuditLog {
         this.timestamp = timestamp;
     }
 
+    // ===========================
+    // equals() e hashCode()
+    // ===========================
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        AuditLog auditLog = (AuditLog) o;
+        return Objects.equals(id, auditLog.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    // ===========================
+    // toString()
+    // ===========================
+    @Override
+    public String toString() {
+        return "AuditLog{"
+                + "id=" + id
+                + ", entityName='" + entityName + '\''
+                + ", entityId=" + entityId
+                + ", actionType=" + actionType
+                + ", savedBy='" + savedBy + '\''
+                + ", timestamp=" + timestamp
+                + ", snapshotSize=" + (snapshotJson != null ? snapshotJson.length() : 0)
+                + '}';
+    }
 }
