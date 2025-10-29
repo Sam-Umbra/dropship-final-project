@@ -5,6 +5,8 @@ import java.util.Objects;
 
 import org.hibernate.annotations.CreationTimestamp;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -24,6 +26,7 @@ public class SupplierUser {
     private Long id;
 
     @ManyToOne
+    @JsonBackReference
     @JoinColumn(name = "supplier_id", nullable = false)
     private Supplier supplier;
 

@@ -31,9 +31,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+@Auditable
 @Entity
 @Table(name = "suppliers")
-@Auditable
 public class Supplier {
 
     @Id

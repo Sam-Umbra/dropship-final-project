@@ -1,7 +1,6 @@
 package br.dev.kajosama.dropship.domain.model.entities;
 
 import java.time.LocalDateTime;
-import java.util.Objects;
 
 import br.dev.kajosama.dropship.domain.model.enums.ActionType;
 import jakarta.persistence.Column;
@@ -12,7 +11,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 @Entity
@@ -37,22 +35,13 @@ public class AuditLog {
     private String savedBy;
 
     @Lob
-    @Column(name = "snapshot_json", columnDefinition = "LONGTEXT", nullable = false)
+    @Column(name = "snapshot_json", columnDefinition = "LONGTEXT")
     private String snapshotJson;
 
     @Column(name = "timestamp", nullable = false, updatable = false)
-    private LocalDateTime timestamp;
+    private LocalDateTime timestamp = LocalDateTime.now();
 
-    @PrePersist
-    protected void onCreate() {
-        if (this.timestamp == null) {
-            this.timestamp = LocalDateTime.now();
-        }
-    }
-
-    // ===========================
     // Construtores
-    // ===========================
     public AuditLog() {
     }
 
@@ -61,14 +50,13 @@ public class AuditLog {
         this.entityId = entityId;
         this.actionType = actionType;
         this.savedBy = savedBy;
-        this.snapshotJson = snapshotJson != null ? snapshotJson : "{}";
+        this.snapshotJson = snapshotJson;
+        this.timestamp = LocalDateTime.now();
     }
 
-    // ===========================
     // Getters e Setters
-    // ===========================
     public Long getId() {
-        return this.id;
+        return id;
     }
 
     public void setId(Long id) {
@@ -76,7 +64,7 @@ public class AuditLog {
     }
 
     public String getEntityName() {
-        return this.entityName;
+        return entityName;
     }
 
     public void setEntityName(String entityName) {
@@ -84,7 +72,7 @@ public class AuditLog {
     }
 
     public Long getEntityId() {
-        return this.entityId;
+        return entityId;
     }
 
     public void setEntityId(Long entityId) {
@@ -92,7 +80,7 @@ public class AuditLog {
     }
 
     public ActionType getActionType() {
-        return this.actionType;
+        return actionType;
     }
 
     public void setActionType(ActionType actionType) {
@@ -100,7 +88,7 @@ public class AuditLog {
     }
 
     public String getSavedBy() {
-        return this.savedBy;
+        return savedBy;
     }
 
     public void setSavedBy(String savedBy) {
@@ -108,7 +96,7 @@ public class AuditLog {
     }
 
     public String getSnapshotJson() {
-        return this.snapshotJson;
+        return snapshotJson;
     }
 
     public void setSnapshotJson(String snapshotJson) {
@@ -116,47 +104,10 @@ public class AuditLog {
     }
 
     public LocalDateTime getTimestamp() {
-        return this.timestamp;
+        return timestamp;
     }
 
     public void setTimestamp(LocalDateTime timestamp) {
         this.timestamp = timestamp;
-    }
-
-    // ===========================
-    // equals() e hashCode()
-    // ===========================
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        AuditLog auditLog = (AuditLog) o;
-        return Objects.equals(id, auditLog.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
-
-    // ===========================
-    // toString()
-    // ===========================
-    @Override
-    public String toString() {
-        return "AuditLog{"
-                + "id=" + id
-                + ", entityName='" + entityName + '\''
-                + ", entityId=" + entityId
-                + ", actionType=" + actionType
-                + ", savedBy='" + savedBy + '\''
-                + ", timestamp=" + timestamp
-                + ", snapshotSize=" + (snapshotJson != null ? snapshotJson.length() : 0)
-                + '}';
     }
 }
