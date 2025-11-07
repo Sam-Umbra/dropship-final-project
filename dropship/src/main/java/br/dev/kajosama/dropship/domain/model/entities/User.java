@@ -2,12 +2,14 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package br.dev.kajosama.dropship.domain.model;
+package br.dev.kajosama.dropship.domain.model.entities;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -17,6 +19,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import br.dev.kajosama.dropship.domain.interfaces.ValidPhone;
 import br.dev.kajosama.dropship.domain.model.enums.AccountStatus;
 import br.dev.kajosama.dropship.security.entities.Role;
 import br.dev.kajosama.dropship.security.entities.UserRole;
@@ -62,7 +65,7 @@ public class User implements UserDetails {
     private String email;
 
     @NotBlank
-    @Size(max = 64)
+    @Size(max = 64, min = 5)
     @Column(nullable = false, length = 64)
     private String password;
 
@@ -84,13 +87,14 @@ public class User implements UserDetails {
     private String cpf;
 
     @NotBlank
-    @Size(max = 13, min = 13)
-    @Column(nullable = false, length = 13)
+    @Size(max = 16, min = 10)
+    @Column(nullable = false, length = 16)
+    @ValidPhone
     private String phone;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private AccountStatus status = AccountStatus.ACTIVE;
+    private AccountStatus status;
 
     @NotNull
     @Past
@@ -109,6 +113,9 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private Set<UserRole> userRoles = new HashSet<>();
 
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private List<Order> orders = new ArrayList<>();
+
     // ==================== SPRING SECURITY METHODS ====================
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -124,7 +131,7 @@ public class User implements UserDetails {
         return this.password;
     }
 
-    public void setRawPassword(String rawPassword) {
+    public void setPassword(String rawPassword) {
         this.password = rawPassword;
     }
 
@@ -140,9 +147,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return this.status != AccountStatus.SUSPENDED
-                && this.status != AccountStatus.DELETED
-                && this.deletedAt == null;
+        return this.status != AccountStatus.SUSPENDED;
     }
 
     @Override
@@ -152,19 +157,15 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        /*return this.status == AccountStatus.ACTIVE
-                && this.emailVerifiedAt != null; // Só ativo se email verificado */
-                return true;
+        return this.status == AccountStatus.ACTIVE
+                && this.emailVerifiedAt != null;
     }
 
     // ==================== MÉTODOS DE CONVENIÊNCIA ====================
-    /**
-     * Verifica se o usuário tem uma role específica
-     * ROLE + Nome
-     */
     public boolean hasRole(String roleName) {
         return userRoles.stream()
-                .anyMatch(userRole -> userRole.getRole().getName().equalsIgnoreCase("ROLE_" + roleName));
+                .map(userRole -> userRole.getRole().getName().toUpperCase())
+                .anyMatch(r -> r.equalsIgnoreCase(roleName) || r.equalsIgnoreCase("ROLE_" + roleName));
     }
 
     /**
@@ -183,12 +184,9 @@ public class User implements UserDetails {
                 -> userRole.getRole().getName().equalsIgnoreCase(roleName));
     }
 
-    /**
-     * Marca a conta como deletada (soft delete)
-     */
-    public void markAsDeleted() {
-        this.deletedAt = LocalDateTime.now();
-        this.status = AccountStatus.DELETED;
+    public boolean isAccountDeleted() {
+        return this.status == AccountStatus.DELETED
+                && this.deletedAt != null;
     }
 
     /**
@@ -213,33 +211,19 @@ public class User implements UserDetails {
         this.emailVerifiedAt = LocalDateTime.now();
     }
 
-    /**
-     * Atualiza último login
-     */
-    public void updateLastLogin() {
-        this.lastLogin = LocalDateTime.now();
-    }
-
-    /**
-     * Atualiza último logout
-     */
-    public void updateLastExit() {
-        this.lastExit = LocalDateTime.now();
-    }
-
     // ==================== CONSTRUTORES ====================
     public User() {
         this.createdAt = LocalDateTime.now();
         this.status = AccountStatus.ACTIVE;
     }
 
-    public User(Long id, String name, String email, String password, String cpf, String phone) {
-        this.id = id;
+    public User(String name, String email, String password, String cpf, String phone, LocalDate birthDate) {
         this.name = name;
         this.email = email;
         this.password = password;
         this.cpf = cpf;
         this.phone = phone;
+        this.birthDate = birthDate;
     }
 
     // ==================== GETTERS E SETTERS ====================
@@ -353,6 +337,14 @@ public class User implements UserDetails {
 
     public void setUserRoles(Set<UserRole> userRoles) {
         this.userRoles = userRoles;
+    }
+
+    public List<Order> getOrders() {
+        return this.orders;
+    }
+
+    public void setOrders(List<Order> orders) {
+        this.orders = orders;
     }
 
 }

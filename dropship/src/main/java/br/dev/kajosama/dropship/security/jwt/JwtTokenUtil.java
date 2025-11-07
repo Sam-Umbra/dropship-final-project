@@ -10,12 +10,14 @@ import javax.crypto.SecretKey;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import br.dev.kajosama.dropship.domain.model.User;
+import br.dev.kajosama.dropship.domain.model.entities.User;
+import br.dev.kajosama.dropship.domain.model.enums.AccountStatus;
 import br.dev.kajosama.dropship.security.configurations.JwtProperties;
 import br.dev.kajosama.dropship.security.payloads.TokenPair;
 import br.dev.kajosama.dropship.security.services.TokenService;
@@ -36,7 +38,7 @@ public class JwtTokenUtil {
     // Hora Minuto Segundo
     private static final long EXPIRE_DURATION = 15 * 60 * 1000; // 15 minutos
 
-    private static final long REFRESH_EXPIRE_DURATION = 12 * 60 * 60 * 1000; // 12 Horas
+    private static final long REFRESH_EXPIRE_DURATION = 3 * 60 * 60 * 1000; // 12 Horas
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JwtTokenUtil.class);
 
@@ -60,6 +62,10 @@ public class JwtTokenUtil {
     }
 
     private String generateToken(User user, long expiration, String tokenType) {
+        if (!user.getStatus().equals(AccountStatus.ACTIVE)) {
+            throw new AccessDeniedException("User: " + user.getName() + "is not authorized in the system");
+        }
+
         try {
             
             SecretKey secretKey = getSecretKey();

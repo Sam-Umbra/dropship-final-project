@@ -9,7 +9,6 @@ package br.dev.kajosama.dropship.domain.model.enums;
  * @author Sam_Umbra
  */
 public enum AccountStatus {
-    /*('ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING', 'DELETED')*/
     ACTIVE,
     INACTIVE,
     SUSPENDED,

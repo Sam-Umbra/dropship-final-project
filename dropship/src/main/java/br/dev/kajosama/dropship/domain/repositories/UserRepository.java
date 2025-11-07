@@ -4,6 +4,7 @@
  */
 package br.dev.kajosama.dropship.domain.repositories;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -15,7 +16,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import br.dev.kajosama.dropship.domain.model.User;
+import br.dev.kajosama.dropship.domain.model.entities.User;
+import br.dev.kajosama.dropship.domain.model.enums.AccountStatus;
 
 /**
  *
@@ -30,6 +32,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByCpf(String cpf);
 
+    boolean existsByEmailAndIdNot(String email, Long id);
+
+    boolean existsByCpfAndIdNot(String cpf, Long id);
+
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.userRoles WHERE u.email = :email")
     Optional<User> findByEmailWithRoles(@Param("email") String email);
 
@@ -43,4 +49,34 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Transactional
     @Query("UPDATE User u SET u.password = ?2, u.updatedAt = CURRENT_TIMESTAMP WHERE u.id = ?1")
     void updatePassword(Long userId, String newEncodedPassword);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE User u SET u.lastLogin = CURRENT_TIMESTAMP WHERE u.id = :userId")
+    void updateLastLogin(@Param("userId") Long userId);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE User u SET u.lastExit = CURRENT_TIMESTAMP WHERE u.id = :userId")
+    void updateLastExit(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("""
+    UPDATE User u 
+       SET u.status = :status, 
+           u.deletedAt = :deletedAt,
+           u.updatedAt = :updatedAt
+     WHERE u.id = :id
+    """)
+    void softDelete(
+            @Param("id") Long id,
+            @Param("status") AccountStatus status,
+            @Param("deletedAt") LocalDateTime deletedAt,
+            @Param("updatedAt") LocalDateTime updatedAt
+    );
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE User u SET u.status = :status, u.updatedAt = CURRENT_TIMESTAMP WHERE u.id = :id")
+    void updateStatus(@Param("status") AccountStatus status, @Param("id") Long id);
 }

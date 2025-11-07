@@ -2,12 +2,13 @@ package br.dev.kajosama.dropship.security.jwt;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
@@ -19,7 +20,9 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import br.dev.kajosama.dropship.domain.model.User;
+import br.dev.kajosama.dropship.domain.model.entities.User;
+import br.dev.kajosama.dropship.security.entities.Role;
+import br.dev.kajosama.dropship.security.entities.UserRole;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
@@ -115,6 +118,19 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         userDetails.setEmail(jwtUtil.getEmail(token));
         userDetails.setId(jwtUtil.getUserId(token));
         userDetails.setName(jwtUtil.getUserName(token));
+
+        // popula roles
+        Set<UserRole> roles = jwtUtil.getRoles(token).stream()
+                .map(roleName -> {
+                    Role role = new Role();
+                    role.setName(roleName);
+                    return new UserRole(userDetails, role, LocalDateTime.now());
+                })
+                .collect(Collectors.toSet());
+
+        userDetails.setUserRoles(roles);
+
         return userDetails;
     }
+
 }

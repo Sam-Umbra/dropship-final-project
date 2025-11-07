@@ -6,7 +6,6 @@ package br.dev.kajosama.dropship.security.configurations;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -74,64 +73,78 @@ public class ApplicationSecurity {
     @Bean
     public SecurityFilterChain configure(HttpSecurity http) throws Exception {
         http
-            // Disable CSRF for stateless API
-            .csrf(csrf -> csrf.disable())
-                
-            // Configure CORS
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                
-            // Stateless session management
-            .sessionManagement(session
-                    -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                
-            // Configure headers for security
-            .headers(headers -> headers
+                // Disable CSRF for stateless API
+                .csrf(csrf -> csrf.disable())
+                // Configure CORS
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                // Stateless session management
+                .sessionManagement(session
+                        -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Configure headers for security
+                .headers(headers -> headers
                 .frameOptions(frameOptions -> frameOptions.deny()) // Prevent clickjacking
                 .contentTypeOptions(Customizer.withDefaults())
                 .httpStrictTransportSecurity(hstsConfig -> hstsConfig
-                    .maxAgeInSeconds(31536000)
-                    .includeSubDomains(true))
-            )
-                
-            // Authorization rules
-            .authorizeHttpRequests(authz -> authz
+                .maxAgeInSeconds(31536000)
+                .includeSubDomains(true))
+                )
+                // Authorization rules
+                .authorizeHttpRequests(authz -> authz
+
                 // Public endpoints
                 .requestMatchers("/auth/login").permitAll()
                 .requestMatchers("/public/**").permitAll()
                 .requestMatchers("/error").permitAll()
-                    
+
                 // Allow OPTIONS for CORS preflight
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                    
-                // Role-based access
+
+                // User
+                .requestMatchers(HttpMethod.POST, "/user").permitAll()
+
+                // Supplier
+                .requestMatchers(HttpMethod.POST, "/suppliers").permitAll()
+                .requestMatchers(HttpMethod.GET, "/suppliers").permitAll()
+                .requestMatchers("/suppliers/**").hasAnyRole("SUPPLIER_PRIMARY", "SUPPLIER", "ADMIN")
+
+                // Product
+                .requestMatchers(HttpMethod.GET, "/product/**").permitAll()
+                .requestMatchers("/product/**").hasAnyRole("SUPPLIER_PRIMARY", "SUPPLIER", "ADMIN")
+
+                // Category
+                .requestMatchers(HttpMethod.GET, "/categories/**").permitAll()
+                .requestMatchers("/categories/**").hasRole("ADMIN")
+
+                // Admin
+                .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/manager/**").hasRole("ADMIN")
-                    
+
                 // All other requests need authentication
                 .anyRequest().authenticated()
-            )
-                
-            // Exception handling
-            .exceptionHandling(exception -> exception
-            .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
-            .accessDeniedHandler(new JwtAccessDeniedHandler())
-            )
-                
-            // Add JWT filter
-            .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class);
+                )
+                // Exception handling
+                .exceptionHandling(exception -> exception
+                .authenticationEntryPoint(new JwtAuthenticationEntryPoint())
+                .accessDeniedHandler(new JwtAccessDeniedHandler())
+                )
+                // Add JWT filter
+                .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
+    /*
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // Allow specific origins in production
         configuration.setAllowedOriginPatterns(Arrays.asList(
-                "http://localhost:3000",
+                "http://localhost:5173",
                 "http://localhost:8080",
-                "https://yourdomain.com"
-        ));
+                "https://ikommercy-navy.vercel.app"
+        )); 
+        
 
         configuration.setAllowedMethods(Arrays.asList(
                 "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
@@ -158,26 +171,42 @@ public class ApplicationSecurity {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }*/
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        // DESENVOLVIMENTO: aceita tudo
+        configuration.addAllowedOriginPattern("*");
+        configuration.addAllowedMethod("*");
+        configuration.addAllowedHeader("*");
+        configuration.setAllowCredentials(false); // Importante se usar "*"
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
     @Component
     public static class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
-        
+
         private final ObjectMapper objectMapper = new ObjectMapper();
-        
+
         @Override
         public void commence(HttpServletRequest request, HttpServletResponse response,
-                           AuthenticationException authException) throws IOException {
-            
+                AuthenticationException authException) throws IOException {
+
             response.setContentType("application/json");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            
+
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Unauthorized");
             errorResponse.put("message", authException.getMessage());
             errorResponse.put("timestamp", Instant.now().toString());
             errorResponse.put("path", request.getRequestURI());
-            
+
             response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
         }
     }
@@ -185,22 +214,22 @@ public class ApplicationSecurity {
     // Custom Access Denied Handler
     @Component
     public static class JwtAccessDeniedHandler implements AccessDeniedHandler {
-        
+
         private final ObjectMapper objectMapper = new ObjectMapper();
-        
+
         @Override
         public void handle(HttpServletRequest request, HttpServletResponse response,
-                         AccessDeniedException accessDeniedException) throws IOException {
-            
+                AccessDeniedException accessDeniedException) throws IOException {
+
             response.setContentType("application/json");
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            
+
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Access Denied");
             errorResponse.put("message", "You don't have permission to access this resource");
             errorResponse.put("timestamp", Instant.now().toString());
             errorResponse.put("path", request.getRequestURI());
-            
+
             response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
         }
     }

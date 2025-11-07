@@ -1,20 +1,53 @@
 version: '3.8'
+
 services:
-  # Spring Boot Application Service
   app:
     build: .
+    container_name: dropship-app
     ports:
       - "8080:8080"
     environment:
-      # Use the Redis service name as the host
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/center_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: appuser
+      SPRING_DATASOURCE_PASSWORD: app123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      # Add any other Spring Boot properties here
     depends_on:
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
 
-  # Redis Service
+  mysql:
+    image: mysql:8.1
+    container_name: dropship-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: center_db
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: app123
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
   redis:
     image: redis:latest
+    container_name: dropship-redis
     ports:
       - "6379:6379"
+
+volumes:
+  mysql_data:
