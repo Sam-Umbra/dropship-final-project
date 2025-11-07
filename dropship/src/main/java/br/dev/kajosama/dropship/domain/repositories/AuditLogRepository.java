@@ -24,6 +24,6 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
 
     List<AuditLog> findByTimestampBetweenOrderByTimestampDesc(LocalDateTime startDate, LocalDateTime endDate);
 
-    long countByEntityNameAndEntityId(String entityName, Long entityId);
+    Long countByEntityNameAndEntityId(String entityName, Long entityId);
 
 }

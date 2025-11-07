@@ -1,5 +1,11 @@
 package br.dev.kajosama.dropship.api.listeners;
 
+import java.lang.reflect.Field;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+
 import org.hibernate.event.spi.PreDeleteEvent;
 import org.hibernate.event.spi.PreDeleteEventListener;
 import org.hibernate.event.spi.PreInsertEvent;
@@ -10,14 +16,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.hibernate6.Hibernate6Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.SerializationFeature;
 
 import br.dev.kajosama.dropship.domain.interfaces.Auditable;
 import br.dev.kajosama.dropship.domain.model.entities.AuditLog;
@@ -35,77 +40,130 @@ public class JpaAuditListener implements PreInsertEventListener, PreUpdateEventL
 
     public JpaAuditListener(EntityManagerFactory emf) {
         this.emf = emf;
+        this.objectMapper = configureMapper();
+    }
 
-        // Configuração robusta do ObjectMapper
-        this.objectMapper = new ObjectMapper();
+    private ObjectMapper configureMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-        // Serializa Java 8 Date/Time
-        this.objectMapper.registerModule(new JavaTimeModule());
-        this.objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-
-        // Suporte a entidades Hibernate, evita loops e problemas com lazy
         Hibernate6Module hibernateModule = new Hibernate6Module();
         hibernateModule.disable(Hibernate6Module.Feature.USE_TRANSIENT_ANNOTATION);
         hibernateModule.enable(Hibernate6Module.Feature.SERIALIZE_IDENTIFIER_FOR_LAZY_NOT_LOADED_OBJECTS);
-        this.objectMapper.registerModule(hibernateModule);
+        mapper.registerModule(hibernateModule);
 
-        // Ignora nulls e proxies
-        this.objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        this.objectMapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        mapper.setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.ANY);
+        return mapper;
     }
 
     @Override
     public boolean onPreInsert(PreInsertEvent event) {
-        persistAudit(event.getEntity(), ActionType.CREATE);
+        persistAudit(event.getEntity(), ActionType.CREATE, null);
         return false;
     }
 
     @Override
     public boolean onPreUpdate(PreUpdateEvent event) {
-        persistAudit(event.getEntity(), ActionType.UPDATE);
+        Map<String, Map<String, Object>> changedFields = getChangedFieldsWithOldValues(event);
+        persistAudit(event.getEntity(), ActionType.UPDATE, changedFields);
         return false;
     }
 
     @Override
     public boolean onPreDelete(PreDeleteEvent event) {
-        persistAudit(event.getEntity(), ActionType.DELETE);
+        persistAudit(event.getEntity(), ActionType.DELETE, null);
         return false;
     }
 
-    private void persistAudit(Object entity, ActionType actionType) {
-        try {
-            if (entity == null || entity instanceof AuditLog) {
-                return;
+    private void persistAudit(Object entity, ActionType actionType, Map<String, ?> changes) {
+        if (entity == null || entity instanceof AuditLog) return;
+        if (!entity.getClass().isAnnotationPresent(Auditable.class)) return;
+
+        try (EntityManager em = emf.createEntityManager()) {
+            em.getTransaction().begin();
+
+            String entityName = entity.getClass().getSimpleName();
+            Long entityId = extractEntityId(entity);
+            String savedBy = resolveCurrentUser();
+
+            String snapshotJson;
+            if (actionType == ActionType.UPDATE && changes != null && !changes.isEmpty()) {
+                snapshotJson = objectMapper.writeValueAsString(changes);
+            } else {
+                snapshotJson = objectMapper.writeValueAsString(flattenCollections(entity));
             }
 
-            // Audita somente entidades marcadas com @Auditable
-            if (!entity.getClass().isAnnotationPresent(Auditable.class)) {
-                return;
-            }
-
-            String entityName;
-            try (EntityManager em = emf.createEntityManager()) {
-                em.getTransaction().begin();
-                entityName = entity.getClass().getSimpleName();
-                Long entityId = extractEntityId(entity);
-                String savedBy = resolveCurrentUser();
-                // Serializa a entidade para JSON, protegendo contra loops
-                String snapshotJson = objectMapper.writeValueAsString(entity);
-                AuditLog auditLog = new AuditLog(entityName, entityId, actionType, savedBy, snapshotJson);
-                em.persist(auditLog);
-                em.getTransaction().commit();
-            }
+            AuditLog auditLog = new AuditLog(entityName, entityId, actionType, savedBy, snapshotJson);
+            em.persist(auditLog);
+            em.getTransaction().commit();
 
             logger.debug("✅ Audit log persisted for {} [{}]", entityName, actionType);
-
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             logger.error("❌ Error persisting audit log for " + entity.getClass().getSimpleName(), e);
+        }
+    }
+
+    /**
+     * Retorna apenas os campos alterados e seus valores antigos e novos.
+     * Exemplo: { "phone": {"old": "+5511999", "new": "+5511888"} }
+     */
+    private Map<String, Map<String, Object>> getChangedFieldsWithOldValues(PreUpdateEvent event) {
+        Map<String, Map<String, Object>> changes = new LinkedHashMap<>();
+        String[] propertyNames = event.getPersister().getPropertyNames();
+        Object[] oldState = event.getOldState();
+        Object[] newState = event.getState();
+
+        for (int i = 0; i < propertyNames.length; i++) {
+            Object oldVal = oldState != null && i < oldState.length ? oldState[i] : null;
+            Object newVal = i < newState.length ? newState[i] : null;
+
+            if (!Objects.equals(oldVal, newVal)) {
+                Map<String, Object> valueDiff = new LinkedHashMap<>();
+                valueDiff.put("old", simplifyValue(oldVal));
+                valueDiff.put("new", simplifyValue(newVal));
+                changes.put(propertyNames[i], valueDiff);
+            }
+        }
+
+        return changes;
+    }
+
+    /**
+     * Simplifica listas e mapas para evitar JSON gigante.
+     */
+    private Object simplifyValue(Object value) {
+        if (value == null) return null;
+        if (value instanceof Collection) return "list";
+        if (value instanceof Map) return "map";
+        if (value.getClass().getPackageName().startsWith("br.dev.kajosama.dropship.domain.model.entities")) {
+            // Evita recursão com entidades internas
+            return value.getClass().getSimpleName();
+        }
+        return value;
+    }
+
+    /**
+     * Converte listas/mapas em rótulos genéricos antes de serializar a entidade inteira.
+     */
+    private Object flattenCollections(Object entity) {
+        try {
+            Map<String, Object> simplified = new LinkedHashMap<>();
+            for (Field field : entity.getClass().getDeclaredFields()) {
+                field.setAccessible(true);
+                Object value = field.get(entity);
+                simplified.put(field.getName(), simplifyValue(value));
+            }
+            return simplified;
+        } catch (IllegalAccessException e) {
+            return entity;
         }
     }
 
     private Long extractEntityId(Object entity) {
         try {
-            var field = entity.getClass().getDeclaredField("id");
+            Field field = entity.getClass().getDeclaredField("id");
             field.setAccessible(true);
             Object idValue = field.get(entity);
             return idValue != null ? ((Number) idValue).longValue() : null;
