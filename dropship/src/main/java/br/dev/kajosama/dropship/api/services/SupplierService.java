@@ -91,11 +91,6 @@ public class SupplierService {
         Role role = roleRepository.findByName("ROLE_SUPPLIER_PRIMARY")
                 .orElseThrow(() -> new EntityNotFoundException("Role SUPPLIER_PRIMARY Not Found"));
 
-        User u = request.user();
-        u.setStatus(AccountStatus.PENDING);
-        u.addRole(role);
-        userService.registerAccount(u, u.getPassword());
-
         Supplier s = new Supplier();
         s.setName(request.supplier().name());
         s.setCnpj(request.supplier().cnpj());
@@ -105,8 +100,13 @@ public class SupplierService {
         s.setTier(SupplierTier.NORMAL);
         s.setStatus(AccountStatus.PENDING);
         s.setApproved(false);
-
+        s.setcommissionRate(request.supplier().commissionRate());
         s = supplierRepository.save(s);
+
+        User u = request.user();
+        u.setStatus(AccountStatus.PENDING);
+        u.addRole(role);
+        userService.registerAccount(u, u.getPassword());
 
         SupplierUser su = new SupplierUser();
         su.setSupplier(s);
@@ -129,7 +129,7 @@ public class SupplierService {
         boolean isPrimarySupplierUserActive = supplier.getStatus().equals(AccountStatus.ACTIVE)
                 && supplier.getSupplierUsers().stream()
                         .anyMatch(su -> su.getUser().getId().equals(currentUser.getId())
-                                && currentUser.hasRole("ROLE_SUPPLIER_PRIMARY"));
+                        && currentUser.hasRole("ROLE_SUPPLIER_PRIMARY"));
 
         if (!isPrimarySupplierUserActive && !currentUser.hasRole("ADMIN")) {
             throw new AccessDeniedException(String.format(
@@ -137,6 +137,9 @@ public class SupplierService {
                     currentUser.getName(),
                     supplier.getName()));
         }
+
+        existsByEmail(request.email());
+        existsByCnpj(request.cnpj());
 
         supplierMapper.updateSupplierFromDto(request, supplier);
 
@@ -156,7 +159,7 @@ public class SupplierService {
         boolean isPrimarySupplierUserActive = supplier.getStatus().equals(AccountStatus.ACTIVE)
                 && supplier.getSupplierUsers().stream()
                         .anyMatch(su -> su.getUser().getId().equals(currentUser.getId())
-                                && currentUser.hasRole("ROLE_SUPPLIER_PRIMARY"));
+                        && currentUser.hasRole("ROLE_SUPPLIER_PRIMARY"));
 
         if (!isPrimarySupplierUserActive && !currentUser.hasRole("ADMIN")) {
             throw new AccessDeniedException(String.format(
@@ -206,7 +209,7 @@ public class SupplierService {
         boolean isPrimarySupplierUserActive = s.getStatus().equals(AccountStatus.ACTIVE)
                 && s.getSupplierUsers().stream()
                         .anyMatch(su -> su.getUser().getId().equals(currentUser.getId())
-                                && currentUser.hasRole("ROLE_SUPPLIER_PRIMARY"));
+                        && currentUser.hasRole("ROLE_SUPPLIER_PRIMARY"));
 
         if (!isPrimarySupplierUserActive && !currentUser.hasRole("ADMIN")) {
             throw new AccessDeniedException(String.format(
