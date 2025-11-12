@@ -9,13 +9,13 @@ import jakarta.persistence.Embeddable;
 
 @Embeddable
 public class Price {
-    
-    @Column(precision = 19, scale = 2)
+
+    @Column(precision = 19, scale = 2, nullable = false)
     private BigDecimal amount;
 
-    public Price () {}
+    protected Price() {}
 
-    public Price (BigDecimal amount) {
+    public Price(BigDecimal amount) {
         if (amount == null) {
             throw new IllegalArgumentException("Amount cannot be null");
         }
@@ -26,34 +26,19 @@ public class Price {
         return this.amount;
     }
 
-    @Override
-    public String toString() {
-        return amount.toString();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Price)) return false;
-        Price price = (Price) o;
-        return amount.equals(price.amount);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(amount);
-    }
-
     public Price add(Price other) {
-        return new Price(this.amount.add(other.amount));
+        BigDecimal result = this.amount.add(other.amount).setScale(2, RoundingMode.HALF_UP);
+        return new Price(result);
     }
 
     public Price subtract(Price other) {
-        return new Price(this.amount.subtract(other.amount));
+        BigDecimal result = this.amount.subtract(other.amount).setScale(2, RoundingMode.HALF_UP);
+        return new Price(result);
     }
 
     public Price multiply(BigDecimal factor) {
-        return new Price(this.amount.multiply(factor));
+        BigDecimal result = this.amount.multiply(factor).setScale(2, RoundingMode.HALF_UP);
+        return new Price(result);
     }
 
     public Price multiply(Integer factor) {
@@ -61,7 +46,20 @@ public class Price {
     }
 
     public Price divide(BigDecimal factor) {
-        return new Price(this.amount.divide(factor));
+        BigDecimal result = this.amount.divide(factor, 2, RoundingMode.HALF_UP);
+        return new Price(result);
+    }
+
+    public boolean isZero() {
+        return this.amount.compareTo(BigDecimal.ZERO) == 0;
+    }
+
+    public boolean isGreaterThan(Price other) {
+        return this.amount.compareTo(other.amount) > 0;
+    }
+
+    public boolean isLessThan(Price other) {
+        return this.amount.compareTo(other.amount) < 0;
     }
 
     public static Price of(BigDecimal amount) {
@@ -75,5 +73,22 @@ public class Price {
     public static Price of(long amount) {
         return new Price(BigDecimal.valueOf(amount));
     }
-    
+
+    @Override
+    public String toString() {
+        return amount.toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Price price = (Price) o;
+        return amount.compareTo(price.amount) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(amount.stripTrailingZeros());
+    }
 }

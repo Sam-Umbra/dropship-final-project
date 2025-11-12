@@ -1,11 +1,13 @@
 package br.dev.kajosama.dropship.domain.model.entities;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 import br.dev.kajosama.dropship.domain.model.objects.Price;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -23,48 +25,45 @@ public class OrderItem {
     @Column(name = "order_item_id")
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
     @NotNull
+    @Column(nullable = false)
     private Integer quantity;
 
     @NotNull
     @Embedded
     private Price price;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
     public OrderItem() {}
 
-    public OrderItem(Order order, Product product, Integer quantity, Price price) {
-        this.order = order;
+    public OrderItem(Product product, Integer quantity) {
         this.product = product;
         this.quantity = quantity;
-        this.price = price;
+        this.price = product.getPrice();
     }
 
     public Long getId() {
-        return this.id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
+        return id;
     }
 
     public Product getProduct() {
-        return this.product;
+        return product;
     }
 
     public void setProduct(Product product) {
         this.product = product;
+        this.price = product != null ? product.getPrice() : Price.of(0);
     }
 
     public Integer getQuantity() {
-        return this.quantity;
+        return quantity;
     }
 
     public void setQuantity(Integer quantity) {
@@ -72,25 +71,37 @@ public class OrderItem {
     }
 
     public Price getPrice() {
-        return this.price;
+        return price;
     }
 
     public void setPrice(Price price) {
         this.price = price;
     }
 
-
     public Order getOrder() {
-        return this.order;
+        return order;
     }
 
-    public void setOrder(Order order) {
+    protected void setOrder(Order order) {
         this.order = order;
     }
 
     public Price totalPrice() {
-        return product.getPrice()
-            .multiply(BigDecimal.valueOf(quantity));
-    }
+        if (product == null) return Price.of(0);
+        Price basePrice = product.getPrice();
 
+        BigDecimal discountPercent = Optional.ofNullable(product.getDiscount())
+                .orElse(BigDecimal.ZERO);
+
+        BigDecimal discountMultiplier = BigDecimal.ONE.subtract(
+                discountPercent.divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP)
+        );
+
+        if (discountMultiplier.compareTo(BigDecimal.ZERO) < 0) {
+            discountMultiplier = BigDecimal.ZERO;
+        }
+
+        Price discounted = basePrice.multiply(discountMultiplier);
+        return discounted.multiply(quantity);
+    }
 }

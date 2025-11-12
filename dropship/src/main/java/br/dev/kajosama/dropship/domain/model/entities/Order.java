@@ -46,47 +46,40 @@ public class Order {
     @Embedded
     private Price total = Price.of(0);
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "order")
-    private List<OrderItem> itens = new ArrayList<>();
+    @OneToMany(
+            cascade = CascadeType.ALL,
+            fetch = FetchType.LAZY,
+            mappedBy = "order",
+            orphanRemoval = true
+    )
+    private List<OrderItem> items = new ArrayList<>();
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    /*
-     * private Long shippingAddressId;
-     */
+    public Order() {
+    }
 
-    public Order () {}
-
-
-    public Order(Long id, LocalDateTime orderDate, OrderStatus status, Price total, List<OrderItem> itens, User user) {
-        this.id = id;
-        this.orderDate = orderDate;
-        this.status = status;
-        this.total = total;
-        this.itens = itens;
+    public Order(User user, OrderStatus status) {
         this.user = user;
+        this.status = status;
     }
 
     public Long getId() {
-        return this.id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
+        return id;
     }
 
     public LocalDateTime getOrderDate() {
-        return this.orderDate;
+        return orderDate;
     }
 
-    public void setOrderDate(LocalDateTime orderDate) {
-        this.orderDate = orderDate;
+    public void setOrderDate(LocalDateTime time) {
+        this.orderDate = time;
     }
 
     public OrderStatus getStatus() {
-        return this.status;
+        return status;
     }
 
     public void setStatus(OrderStatus status) {
@@ -94,42 +87,46 @@ public class Order {
     }
 
     public Price getTotal() {
-        return this.total;
+        return total;
     }
 
-    public void recalculateTotal() {
-        this.total = itens.stream()
-                .map(OrderItem::totalPrice)
-                .reduce(Price.of(0), Price::add);
+    public List<OrderItem> getItems() {
+        return items;
     }
-
-    public List<OrderItem> getItens() {
-        return this.itens;
-    }
-
-    public void setItens(List<OrderItem> itens) {
-        this.itens = itens;
-    }
-
-    public void addItem(OrderItem item) {
-        this.itens.add(item);
-        item.setOrder(this);
-        recalculateTotal();
-    }
-
-    public void removeItem(OrderItem item) {
-        itens.remove(item);
-        item.setOrder(null);
-        recalculateTotal();
-    }
-
 
     public User getUser() {
-        return this.user;
+        return user;
     }
 
     public void setUser(User user) {
         this.user = user;
     }
 
+    public void addItem(OrderItem item) {
+        if (item == null) {
+            return;
+        }
+        item.setOrder(this);
+        this.items.add(item);
+        recalculateTotal();
+    }
+
+    public void removeItem(OrderItem item) {
+        if (item == null) {
+            return;
+        }
+        this.items.remove(item);
+        item.setOrder(null);
+        recalculateTotal();
+    }
+
+    public void recalculateTotal() {
+        this.total = items.stream()
+                .map(OrderItem::totalPrice)
+                .reduce(Price.of(0), Price::add);
+    }
+
+    public void setItems(List<OrderItem> items) {
+        this.items = items;
+    }
 }
