@@ -8,6 +8,8 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import br.dev.kajosama.dropship.domain.model.enums.OrderStatus;
 import br.dev.kajosama.dropship.domain.model.objects.Price;
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
@@ -44,6 +46,9 @@ public class Order {
 
     @NotNull
     @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "amount", column = @Column(name = "total_amount", precision = 10, scale = 2, nullable = false))
+    })
     private Price total = Price.of(0);
 
     @OneToMany(

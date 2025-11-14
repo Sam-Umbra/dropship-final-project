@@ -1,9 +1,12 @@
 package br.dev.kajosama.dropship.domain.model.entities;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Optional;
 
 import br.dev.kajosama.dropship.domain.model.objects.Price;
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -35,6 +38,9 @@ public class OrderItem {
 
     @NotNull
     @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "amount", column = @Column(name = "price_amount", precision = 10, scale = 2, nullable = false))
+    })
     private Price price;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -94,7 +100,7 @@ public class OrderItem {
                 .orElse(BigDecimal.ZERO);
 
         BigDecimal discountMultiplier = BigDecimal.ONE.subtract(
-                discountPercent.divide(BigDecimal.valueOf(100), 2, BigDecimal.ROUND_HALF_UP)
+                discountPercent.divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
         );
 
         if (discountMultiplier.compareTo(BigDecimal.ZERO) < 0) {

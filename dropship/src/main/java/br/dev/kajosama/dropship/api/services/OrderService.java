@@ -17,6 +17,7 @@ import br.dev.kajosama.dropship.domain.model.entities.Product;
 import br.dev.kajosama.dropship.domain.model.entities.User;
 import br.dev.kajosama.dropship.domain.model.enums.OrderStatus;
 import br.dev.kajosama.dropship.domain.repositories.OrderRepository;
+import jakarta.persistence.EntityNotFoundException;
 
 
 @Service
@@ -28,6 +29,19 @@ public class OrderService {
 
     @Autowired
     private ProductService productService;
+
+    public List<Order> getAllUserOrders() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof User currentUser)) {
+            throw new AccessDeniedException("Current user not found or invalid token");
+        }
+
+        if (orderRepository.findAllByUserId(currentUser.getId()).isEmpty()) {
+            throw new EntityNotFoundException("Orders of user: " + currentUser.getName() + "NOT FOUND");
+        }
+
+        return orderRepository.findAllByUserId(currentUser.getId());
+    }
 
     public Order registerOrder(List<OrderItemRequest> items) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -54,6 +68,10 @@ public class OrderService {
             order.addItem(orderItem);
         }
 
-        return orderRepository.save(order); 
+        return saveOrder(order); 
+    }
+
+    public Order saveOrder(Order o) {
+        return orderRepository.save(o);
     }
 }
