@@ -25,9 +25,11 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
+import br.dev.kajosama.dropship.domain.interfaces.Auditable;
 
 @Entity
 @Table(name = "orders")
+@Auditable
 public class Order {
 
     @Id
