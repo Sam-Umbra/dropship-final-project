@@ -61,6 +61,49 @@ public class JwtTokenUtil {
         return generateToken(user, REFRESH_EXPIRE_DURATION, "REFRESH");
     }
 
+    public String generateValidationToken(String entityName, Long entityId ,long expiration, String tokenType) {
+        try {
+            
+            SecretKey secretKey = getSecretKey();
+            Claims claims = Jwts.claims();
+            claims.put("entityId", entityId);
+            claims.put("entityName", entityName);
+            claims.put("tokenType", tokenType);
+            
+            return Jwts.builder()
+                    .setClaims(claims)
+                    .setIssuer("DropShip-API")
+                    .setIssuedAt(new Date())
+                    .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                    .signWith(secretKey, SignatureAlgorithm.HS512)
+                    .compact();
+
+        } catch (InvalidKeyException e) {
+            LOGGER.error("Error creating {} validation token for entity type {}: {}", tokenType,entityName, e.getMessage());
+            throw new RuntimeException("Error creating token", e);
+        }
+    }
+
+    public boolean validateValidationToken(String token) {
+        try {
+            Claims claims = parseClaims(token);
+            String tokenType = claims.get("tokenType", String.class);
+
+            if (!"VALIDATION".equals(tokenType)) {
+                throw new JwtException("Token type is invalid. Expected 'VALIDATION', but got '" + tokenType + "'.");
+            }
+
+            return true;
+
+        } catch (ExpiredJwtException ex) {
+            LOGGER.error("Validation JWT has expired: {}", ex.getMessage());
+            throw ex;
+        } catch (JwtException ex) {
+            LOGGER.error("Invalid validation JWT: {}", ex.getMessage());
+            throw ex;
+        }
+    }
+
     private String generateToken(User user, long expiration, String tokenType) {
         if (!user.getStatus().equals(AccountStatus.ACTIVE)) {
             throw new AccessDeniedException("User: " + user.getName() + "is not authorized in the system");
@@ -100,12 +143,11 @@ public class JwtTokenUtil {
 
     public boolean validateToken(String token) {
         try {
-            @SuppressWarnings("unused")
-            Claims claims = parseClaims(token);
-            Long userId = getUserId(token);
-            Long tokenVersion = getTokenVersion(token);
-            
-            if (!tokenService.isTokenVersionValid(userId, tokenVersion)) {
+            Claims claims = parseClaims(token); // Analisa o token uma única vez
+            Long userId = getUserIdFromClaims(claims);
+            Long tokenVersion = getTokenVersionFromClaims(claims);
+
+            if (userId == null || tokenVersion == null || !tokenService.isTokenVersionValid(userId, tokenVersion)) {
                 LOGGER.debug("Token version is invalid for user: {}", userId);
                 return false;
             }
@@ -232,5 +274,21 @@ public class JwtTokenUtil {
             return integer.longValue();
         }
         return parseClaims(token).get("tokenVersion", Long.class);
+    }
+
+    private Long getUserIdFromClaims(Claims claims) {
+        Object userIdClaim = claims.get("userId");
+        if (userIdClaim instanceof Integer integer) {
+            return integer.longValue();
+        }
+        return claims.get("userId", Long.class);
+    }
+
+    private Long getTokenVersionFromClaims(Claims claims) {
+        Object versionClaim = claims.get("tokenVersion");
+        if (versionClaim instanceof Integer integer) {
+            return integer.longValue();
+        }
+        return claims.get("tokenVersion", Long.class);
     }
 }

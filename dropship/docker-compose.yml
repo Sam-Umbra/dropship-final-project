@@ -13,6 +13,11 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: none
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
+      MAIL_HOST_SERVER: smtp.gmail.com
+      MAIL_HOST_PORT: 587
+      MAIL_HOST_USER: ikommercy.dropshipping@gmail.com
+      MAIL_HOST_PASSWORD: aior ftjt tjhi sqrw
+      MAIL_HOST_PROTOCOL: smtp
     depends_on:
       mysql:
         condition: service_healthy

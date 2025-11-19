@@ -57,6 +57,9 @@ public class UserService {
     @Autowired
     TokenService tokenService;
 
+    @Autowired
+    EmailService emailService;
+
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByEmailWithRoles(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
@@ -101,27 +104,22 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("Role USER Not Found"));
         user.addRole(role);
 
+        user.setStatus(AccountStatus.PENDING);
+
+        String token = tokenService.generateValidationToken("User", user.getId(), (3 * 60 * 1000), "VALIDATION");
+
+
+        emailService.sendEmailWithConfirmationButton(user.getEmail(), "Confirmação de Conta", "http://localhost:8080/email/confirm-account?token=" + token, "Conta da Loja");
+
         return saveUser(user);
     }
 
     public void updateAccount(Long id, AccountUpdateRequest request) {
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = (auth.getPrincipal() instanceof User u) ? u : null;
-        if (currentUser == null) {
-            throw new AccessDeniedException("User not found or invalid token");
-        }
-
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User with ID: " + id + " not found"));
 
-        if (user.isAccountDeleted() && !currentUser.hasRole("ADMIN")) {
-            throw new AccountDeletedException("You can't modify a deleted account");
-        }
-
-        if (!currentUser.getEmail().equals(user.getEmail()) && !currentUser.hasRole("ADMIN")) {
-            throw new AccessDeniedException("You can only modify your account, unless you're an ADMIN");
-        }
+        checkOwnershipOrAdmin(user);
+        checkAccountNotDeleted(user);
 
         if (request.email() != null) {
             boolean emailExists = userRepository.existsByEmailAndIdNot(request.email(), id);
@@ -148,20 +146,11 @@ public class UserService {
     }
 
     public void deleteAccount(Long id) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (!(auth.getPrincipal() instanceof User currentUser)) {
-            throw new AccessDeniedException("User not found or invalid token");
-        }
-
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User with ID: " + id + " not found"));
 
-        if (user.isAccountDeleted()) {
-            throw new AccountDeletedException("You can't modify a deleted account");
-        }
-        if (!currentUser.getEmail().equals(user.getEmail()) && !currentUser.hasRole("ADMIN")) {
-            throw new AccessDeniedException("You can only delete your account, unless you're an ADMIN");
-        }
+        checkOwnershipOrAdmin(user);
+        checkAccountNotDeleted(user);
 
         tokenService.invalidateAllUserTokens(id);
 
@@ -173,22 +162,37 @@ public class UserService {
     }
 
     public void updateStatus(Long id, StatusUpdateRequest status) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (!(auth.getPrincipal() instanceof User currentUser)) {
-            throw new AccessDeniedException("User not found or invalid token");
-        }
-
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User with ID: " + id + " not found"));
 
-        if (!currentUser.getEmail().equals(user.getEmail()) && !currentUser.hasRole("ADMIN")) {
-            throw new AccessDeniedException("You can only modify your account, unless you're an ADMIN");
-        }
-        if (user.isAccountDeleted() && !currentUser.hasRole("ADMIN")) {
-            throw new AccountDeletedException("You can't modify a deleted account");
-        }
+        checkOwnershipOrAdmin(user);
+        checkAccountNotDeleted(user);
 
         userRepository.updateStatus(status.status(), id);
     }
 
+    private User getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!(auth.getPrincipal() instanceof User currentUser)) {
+            throw new AccessDeniedException("User not found or invalid token");
+        }
+        return currentUser;
+    }
+
+    private void checkOwnershipOrAdmin(User userToModify) {
+        User currentUser = getCurrentUser();
+        boolean isOwner = currentUser.getId().equals(userToModify.getId());
+        boolean isAdmin = currentUser.hasRole("ADMIN");
+
+        if (!isOwner && !isAdmin) {
+            throw new AccessDeniedException("You can only modify your own account, unless you're an ADMIN");
+        }
+    }
+
+    private void checkAccountNotDeleted(User user) {
+        User currentUser = getCurrentUser();
+        if (user.isAccountDeleted() && !currentUser.hasRole("ADMIN")) {
+            throw new AccountDeletedException("You can't modify a deleted account");
+        }
+    }
 }

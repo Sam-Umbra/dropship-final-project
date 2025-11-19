@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import br.dev.kajosama.dropship.security.jwt.JwtTokenUtil;
+
 @Service
 public class TokenService {
 
@@ -17,8 +19,12 @@ public class TokenService {
 
     private final RedisTemplate<String, String> redisTemplate;
 
-    public TokenService(RedisTemplate<String, String> redisTemplate) {
+    private final JwtTokenUtil jwtUtil;
+
+
+    public TokenService(RedisTemplate<String, String> redisTemplate, JwtTokenUtil jwtUtil) {
         this.redisTemplate = redisTemplate;
+        this.jwtUtil = jwtUtil;
     }
 
     public void invalidateAllUserTokens(Long userId) {
@@ -75,5 +81,9 @@ public class TokenService {
             LOGGER.error("Failed to fetch all tokens: {}", e.getMessage(), e);
         }
         return tokens;
+    }
+
+    public String generateValidationToken(String entityName, Long entityId ,long expiration, String tokenType) {
+        return jwtUtil.generateValidationToken(entityName, entityId, expiration, tokenType);
     }
 }
