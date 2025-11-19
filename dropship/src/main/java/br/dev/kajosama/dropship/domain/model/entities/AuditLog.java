@@ -41,7 +41,6 @@ public class AuditLog {
     @Column(name = "timestamp", nullable = false, updatable = false)
     private LocalDateTime timestamp = LocalDateTime.now();
 
-    // Construtores
     public AuditLog() {
     }
 
@@ -54,7 +53,6 @@ public class AuditLog {
         this.timestamp = LocalDateTime.now();
     }
 
-    // Getters e Setters
     public Long getId() {
         return id;
     }

@@ -19,6 +19,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import br.dev.kajosama.dropship.domain.interfaces.Auditable;
 import br.dev.kajosama.dropship.domain.interfaces.ValidPhone;
 import br.dev.kajosama.dropship.domain.model.enums.AccountStatus;
 import br.dev.kajosama.dropship.security.entities.Role;
@@ -45,6 +46,7 @@ import jakarta.validation.constraints.Size;
  * @author Sam_Umbra
  */
 @Entity
+@Auditable
 @Table(name = "users")
 public class User implements UserDetails {
 

@@ -69,4 +69,6 @@ public class SupplierController {
         return ResponseEntity.noContent().build();
     }
 
+    /* Implementar Endpoint de alteração de commissionRate via EMAIL */
+
 }

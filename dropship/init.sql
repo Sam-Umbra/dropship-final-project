@@ -209,3 +209,55 @@ CREATE TABLE audit_log (
     INDEX idx_action_type (action_type),
     INDEX idx_saved_by (saved_by)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Registra ações de auditoria sobre entidades marcadas com @Auditable';
+
+-- ============================================================
+-- 10. TABLE: orders
+-- ============================================================
+CREATE TABLE orders (
+    order_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    order_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    status VARCHAR(50) NOT NULL,
+
+    -- Embedded Price
+    total_amount DECIMAL(19, 4) NOT NULL,
+
+    user_id BIGINT NOT NULL,
+
+    CONSTRAINT fk_orders_user
+        FOREIGN KEY (user_id) REFERENCES users(user_id)
+        ON UPDATE CASCADE ON DELETE RESTRICT
+);
+
+-- Optional index (recommended)
+CREATE INDEX idx_orders_user_id ON orders(user_id);
+
+
+-- ============================================================
+-- 11. TABLE: order_items
+-- ============================================================
+CREATE TABLE order_items (
+    order_item_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+
+    product_id BIGINT NOT NULL,
+
+    quantity INT NOT NULL,
+
+    -- Embedded Price
+    price_amount DECIMAL(19, 4) NOT NULL,
+
+    order_id BIGINT NOT NULL,
+
+    CONSTRAINT fk_order_items_product
+        FOREIGN KEY (product_id) REFERENCES products(product_id)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+
+    CONSTRAINT fk_order_items_order
+        FOREIGN KEY (order_id) REFERENCES orders(order_id)
+        ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+-- Recommended indexes
+CREATE INDEX idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX idx_order_items_product_id ON order_items(product_id);

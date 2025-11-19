@@ -7,6 +7,7 @@ import java.util.Set;
 
 import org.hibernate.annotations.UpdateTimestamp;
 
+import br.dev.kajosama.dropship.domain.interfaces.Auditable;
 import br.dev.kajosama.dropship.domain.model.enums.ProductStatus;
 import br.dev.kajosama.dropship.domain.model.objects.Price;
 import jakarta.persistence.AttributeOverride;
@@ -30,6 +31,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+@Auditable
 @Entity
 @Table(name = "products")
 public class Product {
