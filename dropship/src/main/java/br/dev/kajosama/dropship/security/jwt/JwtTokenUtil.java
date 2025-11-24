@@ -16,10 +16,8 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import br.dev.kajosama.dropship.domain.model.entities.User;
 import br.dev.kajosama.dropship.domain.model.enums.AccountStatus;
 import br.dev.kajosama.dropship.security.configurations.JwtProperties;
-import br.dev.kajosama.dropship.security.payloads.TokenPair;
 import br.dev.kajosama.dropship.security.services.TokenService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -31,6 +29,7 @@ import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.InvalidKeyException;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.WeakKeyException;
+import br.dev.kajosama.dropship.domain.model.entities.User;
 
 @Component
 public class JwtTokenUtil {
@@ -44,21 +43,19 @@ public class JwtTokenUtil {
 
     private final JwtProperties jwtProperties;
     private final ObjectMapper objectMapper;
-    private final TokenService tokenService;
 
     public JwtTokenUtil(JwtProperties jwtProperties, ObjectMapper objectMapper,
-    TokenService tokenService) {
+            TokenService tokenService) {
         this.jwtProperties = jwtProperties;
         this.objectMapper = objectMapper;
-        this.tokenService = tokenService;
     }
 
-    public String generateAccessToken(User user) {
-        return generateToken(user, EXPIRE_DURATION, "ACCESS");
+    public String generateAccessToken(User user, Long tokenVersion) {
+        return generateToken(user, tokenVersion, EXPIRE_DURATION, "ACCESS");
     }
 
-    public String generateRefreshToken(User user) {
-        return generateToken(user, REFRESH_EXPIRE_DURATION, "REFRESH");
+    public String generateRefreshToken(User user, Long tokenVersion) {
+        return generateToken(user, tokenVersion, REFRESH_EXPIRE_DURATION, "REFRESH");
     }
 
     public String generateValidationToken(String entityName, Long entityId ,long expiration, String tokenType) {
@@ -104,15 +101,13 @@ public class JwtTokenUtil {
         }
     }
 
-    private String generateToken(User user, long expiration, String tokenType) {
+    private String generateToken(User user, Long tokenVersion, long expiration, String tokenType) {
         if (!user.getStatus().equals(AccountStatus.ACTIVE)) {
             throw new AccessDeniedException("User: " + user.getName() + "is not authorized in the system");
         }
 
         try {
-            
             SecretKey secretKey = getSecretKey();
-            Long tokenVersion = tokenService.getUserTokenVersion(user.getId());
 
             Claims claims = Jwts.claims().setSubject(user.getEmail());
             claims.put("userId", user.getId());
@@ -141,18 +136,10 @@ public class JwtTokenUtil {
         }
     }
 
-    public boolean validateToken(String token) {
+    public boolean validateToken(String token) { // Apenas valida a assinatura e expiração
         try {
-            Claims claims = parseClaims(token); // Analisa o token uma única vez
-            Long userId = getUserIdFromClaims(claims);
-            Long tokenVersion = getTokenVersionFromClaims(claims);
-
-            if (userId == null || tokenVersion == null || !tokenService.isTokenVersionValid(userId, tokenVersion)) {
-                LOGGER.debug("Token version is invalid for user: {}", userId);
-                return false;
-            }
-
-            return true;
+            parseClaims(token);
+            return true; // Se não lançar exceção, é válido
 
         } catch (ExpiredJwtException ex) {
             LOGGER.error("JWT expired: {}", ex.getMessage());
@@ -255,19 +242,6 @@ public class JwtTokenUtil {
 
     //------ TOKEN SERVICE --------------//
 
-    public TokenPair refreshTokens(User user) {
-        tokenService.invalidateAllUserTokens(user.getId());
-        
-        String accessToken = generateAccessToken(user);
-        String refreshToken = generateRefreshToken(user);
-        
-        return new TokenPair(accessToken, refreshToken);
-    }
-
-    public void logout(Long userId) {
-        tokenService.invalidateAllUserTokens(userId);
-    }
-
     public Long getTokenVersion(String token) {
         Object versionClaim = parseClaims(token).get("tokenVersion");
         if (versionClaim instanceof Integer integer) {
@@ -276,7 +250,7 @@ public class JwtTokenUtil {
         return parseClaims(token).get("tokenVersion", Long.class);
     }
 
-    private Long getUserIdFromClaims(Claims claims) {
+    public Long getUserIdFromClaims(Claims claims) {
         Object userIdClaim = claims.get("userId");
         if (userIdClaim instanceof Integer integer) {
             return integer.longValue();
@@ -284,7 +258,7 @@ public class JwtTokenUtil {
         return claims.get("userId", Long.class);
     }
 
-    private Long getTokenVersionFromClaims(Claims claims) {
+    public Long getTokenVersionFromClaims(Claims claims) {
         Object versionClaim = claims.get("tokenVersion");
         if (versionClaim instanceof Integer integer) {
             return integer.longValue();

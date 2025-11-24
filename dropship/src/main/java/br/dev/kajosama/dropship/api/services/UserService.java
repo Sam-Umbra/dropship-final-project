@@ -31,8 +31,8 @@ import br.dev.kajosama.dropship.domain.repositories.UserRepository;
 import br.dev.kajosama.dropship.domain.validators.PhoneValidator;
 import br.dev.kajosama.dropship.security.entities.Role;
 import br.dev.kajosama.dropship.security.repositories.RoleRepository;
-import br.dev.kajosama.dropship.security.services.TokenService;
 import jakarta.persistence.EntityNotFoundException;
+import br.dev.kajosama.dropship.security.jwt.JwtTokenUtil;
 
 /**
  *
@@ -55,7 +55,7 @@ public class UserService {
     UserMapper userMapper;
 
     @Autowired
-    TokenService tokenService;
+    JwtTokenUtil jwtUtil;
 
     @Autowired
     EmailService emailService;
@@ -106,7 +106,7 @@ public class UserService {
 
         user.setStatus(AccountStatus.PENDING);
 
-        String token = tokenService.generateValidationToken("User", user.getId(), (3 * 60 * 1000), "VALIDATION");
+        String token = jwtUtil.generateValidationToken("User", user.getId(), (3 * 60 * 1000), "VALIDATION");
 
 
         emailService.sendEmailWithConfirmationButton(user.getEmail(), "Confirmação de Conta", "http://localhost:8080/email/confirm-account?token=" + token, "Conta da Loja");
@@ -152,7 +152,7 @@ public class UserService {
         checkOwnershipOrAdmin(user);
         checkAccountNotDeleted(user);
 
-        tokenService.invalidateAllUserTokens(id);
+        // A invalidação de token agora é feita pelo AuthService no logout/changePassword
 
         LocalDateTime now = LocalDateTime.now();
 
