@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -70,10 +71,10 @@ public class AuthApi {
         }
         return ResponseEntity.badRequest().body(Map.of("error", "No token provided"));
     }
-    
+
     @PostMapping("/change-password")
-    public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordRequest request, 
-                                          Authentication authentication) {
+    public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordRequest request,
+            Authentication authentication) {
         try {
             User user = (User) authentication.getPrincipal();
             authService.changePassword(user.getId(), request);
@@ -83,7 +84,7 @@ public class AuthApi {
                     .body(Map.of("error", e.getMessage()));
         }
     }
-    
+
     private String getTokenFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
@@ -91,4 +92,41 @@ public class AuthApi {
         }
         return null;
     }
+
+    // Auth/me
+   @GetMapping("/me")
+public ResponseEntity<?> me(Authentication authentication) {
+    if (authentication == null || !authentication.isAuthenticated()) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                             .body(Map.of("error", "Usuário não autenticado"));
+    }
+
+    Object principal = authentication.getPrincipal();
+
+    Long id = null;
+    String name = null;
+    String email = null;
+
+    if (principal instanceof User user) {
+        id = user.getId();
+        name = user.getName();
+        email = user.getEmail();
+    } else if (principal instanceof org.springframework.security.core.userdetails.User springUser) {
+        // Se você usa Spring UserDetails
+        name = springUser.getUsername();
+        email = springUser.getUsername(); // você pode mapear para email real se quiser
+    } else {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                             .body(Map.of("error", "Não foi possível obter os dados do usuário"));
+    }
+
+    Map<String, Object> userData = Map.of(
+            "id", id,
+            "name", name,
+            "email", email
+    );
+
+    return ResponseEntity.ok(userData);
+}
+
 }
