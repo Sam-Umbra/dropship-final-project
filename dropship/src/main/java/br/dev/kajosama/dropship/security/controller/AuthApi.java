@@ -4,6 +4,7 @@
  */
 package br.dev.kajosama.dropship.security.controller;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,8 @@ import br.dev.kajosama.dropship.security.payloads.RefreshRequest;
 import br.dev.kajosama.dropship.security.services.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.util.List;
+
 
 /**
  *
@@ -106,15 +109,24 @@ public ResponseEntity<?> me(Authentication authentication) {
     Long id = null;
     String name = null;
     String email = null;
+    List<String> roles = new ArrayList<>();
 
     if (principal instanceof User user) {
         id = user.getId();
         name = user.getName();
         email = user.getEmail();
+
+        // converte Set<UserRole> para List<String>
+        roles = user.getUserRoles().stream()
+                    .map(userRole -> userRole.getRole().getName().toUpperCase())
+                    .toList();
+
     } else if (principal instanceof org.springframework.security.core.userdetails.User springUser) {
-        // Se você usa Spring UserDetails
         name = springUser.getUsername();
-        email = springUser.getUsername(); // você pode mapear para email real se quiser
+        email = springUser.getUsername();
+        roles = springUser.getAuthorities().stream()
+                          .map(auth -> auth.getAuthority())
+                          .toList();
     } else {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                              .body(Map.of("error", "Não foi possível obter os dados do usuário"));
@@ -123,10 +135,10 @@ public ResponseEntity<?> me(Authentication authentication) {
     Map<String, Object> userData = Map.of(
             "id", id,
             "name", name,
-            "email", email
+            "email", email,
+            "roles", roles
     );
 
     return ResponseEntity.ok(userData);
 }
-
 }
