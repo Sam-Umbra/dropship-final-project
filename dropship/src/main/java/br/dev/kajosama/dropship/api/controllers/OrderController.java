@@ -65,7 +65,4 @@ public class OrderController {
         orderService.updateOrderStatus(id, status);
         return ResponseEntity.noContent().build();
     }
-
-
-
 }

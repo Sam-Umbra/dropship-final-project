@@ -62,6 +62,27 @@ public class EmailService {
         }
     }
 
+    @Async
+    public void sendSupplierEmail(String to, String subject, String buttonUrl, String emailType, String supplierName, String supplierEmail, String supplierPhone, String supplierUserName, String supplierUserPhone, String supplierId) {
+        try {
+            String htmlTemplate = loadResourceFile("templates/email/supplier-confirmation-email.html");
+
+            String htmlContent = htmlTemplate
+                    .replace("{{buttonUrl}}", buttonUrl)
+                    .replace("{{supplierName}}", supplierName)
+                    .replace("{{supplierEmail}}", supplierEmail)
+                    .replace("{{supplierPhone}}", supplierPhone)
+                    .replace("{{supplierUserName}}", supplierUserName)
+                    .replace("{{supplierUserPhone}}", supplierUserPhone)
+                    .replace("{{supplierId}}", supplierId);
+
+            sendHtmlEmail(to, subject, htmlContent);
+        } catch (IOException e) {
+            logger.error("Falha ao carregar template de e-mail: {}", e.getMessage());
+            throw new IllegalStateException("Falha ao carregar template de e-mail", e);
+        }
+    }
+
     private String loadResourceFile(String path) throws IOException {
         InputStream inputStream = getClass().getClassLoader().getResourceAsStream(path);
         if (inputStream == null) throw new IOException("Resource not found: " + path);

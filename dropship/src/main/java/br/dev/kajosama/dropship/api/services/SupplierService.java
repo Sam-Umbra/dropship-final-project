@@ -23,6 +23,7 @@ import br.dev.kajosama.dropship.domain.model.enums.SupplierTier;
 import br.dev.kajosama.dropship.domain.repositories.SupplierRepository;
 import br.dev.kajosama.dropship.domain.repositories.SupplierUserRepository;
 import br.dev.kajosama.dropship.security.entities.Role;
+import br.dev.kajosama.dropship.security.jwt.JwtTokenUtil;
 import br.dev.kajosama.dropship.security.repositories.RoleRepository;
 import jakarta.persistence.EntityNotFoundException;
 
@@ -44,6 +45,12 @@ public class SupplierService {
 
     @Autowired
     private SupplierUserRepository supplierUserRepository;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
+    private JwtTokenUtil jwtUtil;
 
     public boolean existsById(Long id) {
         return supplierRepository.existsById(id);
@@ -113,8 +120,49 @@ public class SupplierService {
         su.setUser(u);
         supplierUserRepository.save(su);
 
-        return SupplierResponse.fromEntity(s);
+        String token = jwtUtil.generateValidationToken(
+                "Supplier",
+                s.getId(),
+                (3 * 60 * 1000),
+                "VALIDATION"
+        );
 
+        emailService.sendSupplierEmail(
+                "ikommercy.dropshipping@gmail.com",
+                "Confirmação de Fornecedor",
+                "http://localhost:8080/suppliers/email/confirm-account?token=" + token,
+                "Conta de Fornecedor",
+                s.getName(),
+                s.getEmail(),
+                s.getPhone(),
+                u.getName(),
+                u.getEmail(),
+                String.valueOf(s.getId())
+        );
+
+        return SupplierResponse.fromEntity(s);
+    }
+
+    @Transactional
+    public void confirmSupplier(String token) {
+        jwtUtil.validateValidationToken(token);
+        Long supplierId = jwtUtil.getEntityId(token);
+
+        Supplier supplier = supplierRepository.findById(supplierId)
+                .orElseThrow(() -> new AccessDeniedException("Supplier not found with id: " + supplierId));
+
+        supplier.setStatus(AccountStatus.ACTIVE);
+        supplier.setApproved(true);
+        supplierRepository.save(supplier);
+
+        SupplierUser primary = supplier.getSupplierUsers().stream()
+                .filter(su -> su.getUser().hasRole("ROLE_SUPPLIER_PRIMARY"))
+                .findFirst()
+                .orElseThrow(() -> new AccessDeniedException("Primary supplier user not found"));
+
+        User user = primary.getUser();
+        user.activate();
+        userService.saveUser(user);
     }
 
     public void updateSupplier(Long id, SupplierUpdateRequest request) {

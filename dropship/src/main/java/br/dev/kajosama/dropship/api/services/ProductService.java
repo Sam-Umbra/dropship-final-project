@@ -60,6 +60,13 @@ public class ProductService {
         Supplier supplier = supplierRepo.findById(request.supplierId())
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Supplier with the id: {" + request.supplierId() + "} NOT FOUND"));
+        
+        if (!isSupplierActive(supplier)) {
+            throw new AccessDeniedException(String.format(
+                "Supplier '%s' cannot register a product unless they have an ACTIVE account",
+                supplier.getName()
+            ));
+        }
 
         List<Category> categories = categoryRepo.findAllById(request.categoryIds());
         if (categories.isEmpty()) {
@@ -118,7 +125,7 @@ public class ProductService {
             throw new EntityNotFoundException("There is no supplier for the product");
         }
 
-        boolean isSupplierUser = supplier.getStatus().equals(AccountStatus.ACTIVE)
+        boolean isSupplierUser = isSupplierActive(supplier)
                 && Optional.ofNullable(supplier.getSupplierUsers())
                         .orElse(Collections.emptyList())
                         .stream()
@@ -131,5 +138,9 @@ public class ProductService {
                     product.getName(),
                     supplier.getName()));
         }
+    }
+
+    public boolean isSupplierActive(Supplier supplier) {
+        return supplier.getStatus().equals(AccountStatus.ACTIVE);
     }
 }
