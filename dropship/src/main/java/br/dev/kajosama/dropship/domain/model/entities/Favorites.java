@@ -2,6 +2,7 @@ package br.dev.kajosama.dropship.domain.model.entities;
 
 import java.util.Objects;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -16,6 +17,7 @@ public class Favorites {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "favorite_id")
     private Long id;
 
     @ManyToOne(optional = false)
@@ -30,8 +32,7 @@ public class Favorites {
     public Favorites() {
     }
 
-    public Favorites(Long id, User user, Product product) {
-        this.id = id;
+    public Favorites(User user, Product product) {
         this.user = user;
         this.product = product;
     }

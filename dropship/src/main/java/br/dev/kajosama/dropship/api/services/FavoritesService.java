@@ -1,8 +1,11 @@
 package br.dev.kajosama.dropship.api.services;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import br.dev.kajosama.dropship.domain.model.entities.Favorites;
@@ -23,51 +26,72 @@ public class FavoritesService {
     private ProductRepository productRepository;
 
     /**
-     * Adiciona um produto aos favoritos de um usuário.
+     * Adiciona uma lista de produtos aos favoritos de um usuário.
      *
-     * @param user      O usuário que está favoritando o produto.
-     * @param productId O ID do produto a ser favoritado.
-     * @return O objeto Favorites salvo.
-     * @throws EntityNotFoundException   Se o produto não for encontrado.
-     * @throws IllegalStateException Se o produto já estiver nos favoritos.
+     * @param user O usuário que está favoritando o produto.
+     * @param productIds A lista de IDs de produtos a serem favoritados.
+     * @return A lista de objetos Favorites salvos.
+     * @throws EntityNotFoundException Se o produto não for encontrado.
      */
     @Transactional
-    public Favorites addFavorite(User user, Long productId) {
-        if (favoritesRepository.existsByUserAndProductId(user, productId)) {
-            throw new IllegalStateException("Produto já está nos favoritos.");
+    public List<Favorites> addFavorites(User user, List<Long> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return new ArrayList<>();
         }
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new EntityNotFoundException("Produto com ID " + productId + " não encontrado."));
 
-        Favorites favorite = new Favorites();
-        favorite.setUser(user);
-        favorite.setProduct(product);
+        List<Favorites> existingFavorites = favoritesRepository.findByUserAndProductIdIn(user, productIds);
+        var existingProductIds = new HashSet<Long>();
+        for (Favorites f : existingFavorites) {
+            existingProductIds.add(f.getProduct().getId());
+        }
 
-        return favoritesRepository.save(favorite);
+        var newProductIds = new ArrayList<Long>();
+        for (Long id : productIds) {
+            if (!existingProductIds.contains(id)) {
+                newProductIds.add(id);
+            }
+        }
+
+        if (newProductIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Product> productsToAdd = productRepository.findAllById(newProductIds);
+
+        List<Favorites> newFavorites = productsToAdd.stream().map(product -> new Favorites(user, product)).toList();
+        return favoritesRepository.saveAll(newFavorites);
     }
 
     /**
-     * Remove um produto dos favoritos de um usuário.
+     * Remove produtos dos favoritos de um usuário. Operação idempotente: não
+     * falha se o favorito já não existir.
      *
-     * @param user      O usuário.
-     * @param productId O ID do produto a ser removido.
-     * @throws EntityNotFoundException Se o favorito não for encontrado.
+     * @param user O usuário.
+     * @param productIds Os IDs dos produtos a serem removidos.
      */
     @Transactional
-    public void removeFavorite(User user, Long productId) {
-        Favorites favorite = favoritesRepository.findByUserAndProductId(user, productId)
-                .orElseThrow(() -> new EntityNotFoundException("Favorito não encontrado para este usuário e produto."));
-        favoritesRepository.delete(favorite);
+    public void removeFavorites(User user, Set<Long> productIds) {
+        // 1. Fail-fast para entradas inválidas
+        if (productIds == null || productIds.isEmpty()) {
+            return;
+        }
+
+        // 2. Busca os itens existentes
+        List<Favorites> favorites = favoritesRepository
+                .findByUserAndProductIdIn(user, productIds);
+
+        if (!favorites.isEmpty()) {
+            favoritesRepository.deleteAllInBatch(favorites);
+        }
     }
 
     /**
-     * Lista os produtos favoritados por um usuário com paginação.
+     * Lista os produtos favoritados por um usuário.
      *
-     * @param user     O usuário.
-     * @param pageable As informações de paginação.
-     * @return Uma página de favoritos.
+     * @param user O usuário.
+     * @return Uma lista de favoritos.
      */
-    public Page<Favorites> getFavorites(User user, Pageable pageable) {
-        return favoritesRepository.findByUser(user, pageable);
+    public List<Favorites> getFavorites(User user) {
+        return favoritesRepository.findByUser(user);
     }
 }
