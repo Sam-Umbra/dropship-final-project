@@ -18,7 +18,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import br.dev.kajosama.dropship.domain.model.enums.AccountStatus;
 import br.dev.kajosama.dropship.security.configurations.JwtProperties;
-import br.dev.kajosama.dropship.security.services.TokenService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -44,8 +43,7 @@ public class JwtTokenUtil {
     private final JwtProperties jwtProperties;
     private final ObjectMapper objectMapper;
 
-    public JwtTokenUtil(JwtProperties jwtProperties, ObjectMapper objectMapper,
-            TokenService tokenService) {
+    public JwtTokenUtil(JwtProperties jwtProperties, ObjectMapper objectMapper) {
         this.jwtProperties = jwtProperties;
         this.objectMapper = objectMapper;
     }
@@ -177,6 +175,19 @@ public class JwtTokenUtil {
         }
     }
 
+    public Long getEntityId(String token) {
+        try {
+            Object entityIdClaim = parseClaims(token).get("entityId");
+            if (entityIdClaim instanceof Integer integer) {
+                return integer.longValue();
+            }
+            return parseClaims(token).get("entityId", Long.class);
+        } catch (Exception e) {
+            LOGGER.error("Error upon extracting entityId form token: {}", e.getMessage());
+            throw new RuntimeException("Invalid token", e);
+        }
+    }
+
     public String getUserName(String token) {
         try {
             return parseClaims(token).get("name", String.class);
@@ -248,14 +259,6 @@ public class JwtTokenUtil {
             return integer.longValue();
         }
         return parseClaims(token).get("tokenVersion", Long.class);
-    }
-
-    public Long getUserIdFromClaims(Claims claims) {
-        Object userIdClaim = claims.get("userId");
-        if (userIdClaim instanceof Integer integer) {
-            return integer.longValue();
-        }
-        return claims.get("userId", Long.class);
     }
 
     public Long getTokenVersionFromClaims(Claims claims) {

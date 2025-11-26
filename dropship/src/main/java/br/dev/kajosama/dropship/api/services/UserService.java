@@ -30,9 +30,9 @@ import br.dev.kajosama.dropship.domain.model.enums.AccountStatus;
 import br.dev.kajosama.dropship.domain.repositories.UserRepository;
 import br.dev.kajosama.dropship.domain.validators.PhoneValidator;
 import br.dev.kajosama.dropship.security.entities.Role;
+import br.dev.kajosama.dropship.security.jwt.JwtTokenUtil;
 import br.dev.kajosama.dropship.security.repositories.RoleRepository;
 import jakarta.persistence.EntityNotFoundException;
-import br.dev.kajosama.dropship.security.jwt.JwtTokenUtil;
 
 /**
  *
@@ -106,12 +106,23 @@ public class UserService {
 
         user.setStatus(AccountStatus.PENDING);
 
-        String token = jwtUtil.generateValidationToken("User", user.getId(), (3 * 60 * 1000), "VALIDATION");
+        User savedUser = saveUser(user);
 
+        String token = jwtUtil.generateValidationToken(
+                "User",
+                savedUser.getId(),
+                (3 * 60 * 1000),
+                "VALIDATION"
+        );
 
-        emailService.sendEmailWithConfirmationButton(user.getEmail(), "Confirmação de Conta", "http://localhost:8080/email/confirm-account?token=" + token, "Conta da Loja");
+        emailService.sendEmailWithConfirmationButton(
+                savedUser.getEmail(),
+                "Confirmação de Conta",
+                "http://localhost:8080/user/email/confirm-account?token=" + token,
+                "Conta da Loja"
+        );
 
-        return saveUser(user);
+        return savedUser;
     }
 
     public void updateAccount(Long id, AccountUpdateRequest request) {
@@ -153,7 +164,6 @@ public class UserService {
         checkAccountNotDeleted(user);
 
         // A invalidação de token agora é feita pelo AuthService no logout/changePassword
-
         LocalDateTime now = LocalDateTime.now();
 
         userRepository.softDelete(id, AccountStatus.DELETED, now, now);
@@ -194,5 +204,14 @@ public class UserService {
         if (user.isAccountDeleted() && !currentUser.hasRole("ADMIN")) {
             throw new AccountDeletedException("You can't modify a deleted account");
         }
+    }
+
+    public void confirmAccount(String token) {
+        jwtUtil.validateValidationToken(token);
+        Long userId = jwtUtil.getEntityId(token);
+
+        User user = userRepository.findById(userId).orElseThrow(() -> new AccessDeniedException("Account not found with email: " + userId));
+        user.activate();
+        userRepository.save(user);
     }
 }

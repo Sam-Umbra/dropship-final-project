@@ -196,7 +196,7 @@ public class User implements UserDetails {
      */
     public void activate() {
         this.status = AccountStatus.ACTIVE;
-        this.deletedAt = null;
+        this.emailVerifiedAt = LocalDateTime.now();
     }
 
     /**

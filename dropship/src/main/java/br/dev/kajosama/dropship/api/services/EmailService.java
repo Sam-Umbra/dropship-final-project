@@ -1,5 +1,9 @@
 package br.dev.kajosama.dropship.api.services;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -7,6 +11,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.util.FileCopyUtils;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -18,28 +23,6 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
     private final String fromEmail;
-
-    private static final String CONFIRMATION_EMAIL_TEMPLATE = """
-        <div style="font-family: Arial, sans-serif; padding: 20px; text-align: center; border: 1px solid #ddd; border-radius: 8px; max-width: 600px; margin: auto;">
-            <h2 style="color: #333;">Olá!</h2>
-            <p style="color: #555;">Clique no botão abaixo para confirmar seu e-mail de %s:</p>
-            
-            <a href="%s" 
-               style="display: inline-block;
-                      padding: 12px 25px;
-                      background-color: #FD6400;
-                      color: white;
-                      text-decoration: none;
-                      border-radius: 6px;
-                      font-size: 16px;
-                      margin-top: 20px;
-                      font-weight: bold;">
-                Confirmar
-            </a>
-            
-            <p style="margin-top: 30px; color: #888; font-size: 12px;">Se você não fez esta solicitação, por favor, ignore este e-mail.</p>
-        </div>
-    """;
 
     public EmailService(JavaMailSender mailSender, @Value("${spring.mail.username}") String fromEmail) {
         this.mailSender = mailSender;
@@ -64,7 +47,25 @@ public class EmailService {
 
     @Async
     public void sendEmailWithConfirmationButton(String to, String subject, String buttonUrl, String emailType) {
-        String htmlContent = CONFIRMATION_EMAIL_TEMPLATE.formatted(emailType, buttonUrl);
-        sendHtmlEmail(to, subject, htmlContent);
+        try {
+            String css = loadResourceFile("templates/email/email-style.css");
+            String htmlTemplate = loadResourceFile("templates/email/confirmation-email.html");
+
+            String htmlContent = htmlTemplate
+                    .replace("{{css}}", css)
+                    .replace("{{buttonUrl}}", buttonUrl);
+
+            sendHtmlEmail(to, subject, htmlContent);
+        } catch (IOException e) {
+            logger.error("Falha ao carregar template de e-mail: {}", e.getMessage());
+            throw new IllegalStateException("Falha ao carregar template de e-mail", e);
+        }
+    }
+
+    private String loadResourceFile(String path) throws IOException {
+        InputStream inputStream = getClass().getClassLoader().getResourceAsStream(path);
+        if (inputStream == null) throw new IOException("Resource not found: " + path);
+        byte[] binaryData = FileCopyUtils.copyToByteArray(inputStream);
+        return new String(binaryData, StandardCharsets.UTF_8);
     }
 }
