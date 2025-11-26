@@ -14,7 +14,6 @@ import br.dev.kajosama.dropship.security.jwt.JwtTokenUtil;
 import br.dev.kajosama.dropship.security.payloads.AuthRequest;
 import br.dev.kajosama.dropship.security.payloads.AuthResponse;
 import br.dev.kajosama.dropship.security.payloads.ChangePasswordRequest;
-import br.dev.kajosama.dropship.security.payloads.RefreshRequest;
 import br.dev.kajosama.dropship.security.payloads.TokenPair;
 import jakarta.transaction.Transactional;
 
@@ -55,19 +54,20 @@ public class AuthService {
         tokenService.invalidateAllUserTokens(user.getId());
         userRepository.updateLastLogin(user.getId());
 
-        String accessToken = jwtUtil.generateAccessToken(user);
-        String refreshToken = jwtUtil.generateRefreshToken(user);
+        Long tokenVersion = tokenService.getUserTokenVersion(user.getId());
+        String accessToken = jwtUtil.generateAccessToken(user, tokenVersion);
+        String refreshToken = jwtUtil.generateRefreshToken(user, tokenVersion);
 
         LOGGER.info("User {} logged in successfully", request.email());
         return new AuthResponse(request.email(), accessToken, refreshToken);
     }
-
-    public AuthResponse refreshTokens(RefreshRequest request) {
-        if (!jwtUtil.validateToken(request.refreshToken())) {
+    
+    public AuthResponse refreshTokens(String refreshToken) {
+        if (!jwtUtil.validateToken(refreshToken)) {
             throw new RuntimeException("Invalid refresh token");
         }
 
-        Long userId = jwtUtil.getUserId(request.refreshToken());
+        Long userId = jwtUtil.getUserId(refreshToken);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -78,7 +78,13 @@ public class AuthService {
             throw new AccountDeletedException("Account is deleted");
         }
 
-        TokenPair tokens = jwtUtil.refreshTokens(user);
+        if (!tokenService.isTokenVersionValid(userId, jwtUtil.getTokenVersion(refreshToken))) {
+            throw new RuntimeException("Refresh token has been invalidated");
+        }
+
+        tokenService.invalidateAllUserTokens(userId);
+        Long newTokenVersion = tokenService.getUserTokenVersion(userId);
+        TokenPair tokens = new TokenPair(jwtUtil.generateAccessToken(user, newTokenVersion), jwtUtil.generateRefreshToken(user, newTokenVersion));
 
         LOGGER.info("Tokens refreshed for user {}", userId);
         return new AuthResponse(user.getEmail(), tokens.accessToken(), tokens.refreshToken());
@@ -90,7 +96,7 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("User with ID " + userId + " wasn't found"));
 
         userRepository.updateLastExit(userId);
-        jwtUtil.logout(userId);
+        tokenService.invalidateAllUserTokens(userId);
         LOGGER.info("User {} logged out successfully", userId);
     }
 
@@ -106,7 +112,7 @@ public class AuthService {
 
         userRepository.updatePassword(userId, newEncodedPassword);
 
-        jwtUtil.logout(userId);
+        tokenService.invalidateAllUserTokens(userId);
 
         LOGGER.info("Password changed and all tokens invalidated for user {}", userId);
     }

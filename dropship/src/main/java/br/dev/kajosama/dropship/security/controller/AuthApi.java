@@ -56,7 +56,7 @@ public class AuthApi {
     public ResponseEntity<?> refresh(@RequestBody @Valid RefreshRequest request) {
         try {
 
-            AuthResponse response = authService.refreshTokens(request);
+            AuthResponse response = authService.refreshTokens(request.refreshToken());
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {

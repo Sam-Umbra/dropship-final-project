@@ -20,6 +20,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import br.dev.kajosama.dropship.domain.model.entities.User;
 import br.dev.kajosama.dropship.security.entities.Role;
+import br.dev.kajosama.dropship.security.services.TokenService;
 import br.dev.kajosama.dropship.security.entities.UserRole;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.security.SignatureException;
@@ -34,6 +35,9 @@ public class JwtTokenFilter extends OncePerRequestFilter {
     @Autowired
     private JwtTokenUtil jwtUtil;
 
+    @Autowired
+    private TokenService tokenService;
+
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
@@ -43,8 +47,13 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         }
         String token = getAccessToken(request);
         try {
-            if (jwtUtil.validateToken(token)) {
+            if (jwtUtil.validateToken(token) && isTokenVersionValid(token)) {
                 setAuthenticationContext(token, request);
+            } else {
+                if (!isTokenVersionValid(token)) {
+                    handleInvalidToken(response, "Token has been invalidated.", HttpStatus.UNAUTHORIZED);
+                    return;
+                }
             }
         } catch (ExpiredJwtException ex) {
             handleInvalidToken(response, "Expired JWT token, please request a new token.", HttpStatus.UNAUTHORIZED);
@@ -67,6 +76,11 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         String jsonResponse = String.format("{\"error\": \"%s\", \"timestamp\": \"%s\"}", message,
                 Instant.now().toString());
         response.getWriter().write(jsonResponse);
+    }
+
+    private boolean isTokenVersionValid(String token) {
+        Long userId = jwtUtil.getUserId(token);
+        return tokenService.isTokenVersionValid(userId, jwtUtil.getTokenVersion(token));
     }
 
     private boolean hasAuthorizationBearer(HttpServletRequest request) {

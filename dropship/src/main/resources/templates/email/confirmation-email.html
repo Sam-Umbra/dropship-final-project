@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Confirmação de Email</title>
+    <style>
+      {{css}}
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <!-- Header -->
+      <div class="email-header">
+        <div class="icon-circle">
+          <svg
+            class="checkmark"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <circle class="checkmark-circle" cx="12" cy="12" r="10" />
+            <path class="checkmark-check" d="M8 12l2.5 2.5 5.5-5.5" />
+          </svg>
+        </div>
+        <h1>Confirme seu Endereço de Email</h1>
+      </div>
+
+      <!-- Body -->
+      <div class="email-body">
+        <p class="greeting">Olá,</p>
+        <p class="email-text">
+          Obrigado por se cadastrar! Estamos felizes em tê-lo conosco. Para
+          começar, por favor confirme seu endereço de email clicando no botão
+          abaixo.
+        </p>
+
+        <!-- CTA Button -->
+        <div class="cta-container">
+          <a href="{{buttonUrl}}" class="cta-button"
+            >Confirmar Endereço de Email</a
+          >
+        </div>
+
+        <div class="fallback-text">
+          <p>
+            Se o botão não funcionar, copie e cole este link no seu navegador:
+          </p>
+          <div class="link-box">
+            <code style="color: #6b7280">{{buttonUrl}}</code>
+          </div>
+        </div>
+
+        <div class="expiry-notice">
+          <p>
+            Este link expirará em 24 horas. Se você não criou uma conta conosco,
+            pode ignorar este email com segurança.
+          </p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="email-footer">
+        <p class="footer-text">
+          Precisa de ajuda? Entre em contato conosco em
+          <a href="mailto:ikommercy.dropshipping@gmail.com" class="footer-link"
+            >ikommercy.dropshipping@gmail.com</a
+          >
+        </p>
+        <p class="copyright">© 2025 YourApp. Todos os direitos reservados.</p>
+        <div class="footer-links">
+          <a href="#">Política de Privacidade</a><span>•</span
+          ><a href="#">Termos de Serviço</a><span>•</span
+          ><a href="#">Cancelar Inscrição</a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

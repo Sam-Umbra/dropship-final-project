@@ -101,6 +101,7 @@ public class ApplicationSecurity {
 
                 // User
                 .requestMatchers(HttpMethod.POST, "/user").permitAll()
+                .requestMatchers(HttpMethod.GET, "/user/email/confirm-account").permitAll()
 
                 // Supplier
                 .requestMatchers(HttpMethod.POST, "/suppliers").permitAll()

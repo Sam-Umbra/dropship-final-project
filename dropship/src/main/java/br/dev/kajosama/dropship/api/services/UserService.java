@@ -30,8 +30,8 @@ import br.dev.kajosama.dropship.domain.model.enums.AccountStatus;
 import br.dev.kajosama.dropship.domain.repositories.UserRepository;
 import br.dev.kajosama.dropship.domain.validators.PhoneValidator;
 import br.dev.kajosama.dropship.security.entities.Role;
+import br.dev.kajosama.dropship.security.jwt.JwtTokenUtil;
 import br.dev.kajosama.dropship.security.repositories.RoleRepository;
-import br.dev.kajosama.dropship.security.services.TokenService;
 import jakarta.persistence.EntityNotFoundException;
 
 /**
@@ -55,7 +55,10 @@ public class UserService {
     UserMapper userMapper;
 
     @Autowired
-    TokenService tokenService;
+    JwtTokenUtil jwtUtil;
+
+    @Autowired
+    EmailService emailService;
 
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByEmailWithRoles(username)
@@ -101,27 +104,33 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("Role USER Not Found"));
         user.addRole(role);
 
-        return saveUser(user);
+        user.setStatus(AccountStatus.PENDING);
+
+        User savedUser = saveUser(user);
+
+        String token = jwtUtil.generateValidationToken(
+                "User",
+                savedUser.getId(),
+                (3 * 60 * 1000),
+                "VALIDATION"
+        );
+
+        emailService.sendEmailWithConfirmationButton(
+                savedUser.getEmail(),
+                "Confirmação de Conta",
+                "http://localhost:8080/user/email/confirm-account?token=" + token,
+                "Conta da Loja"
+        );
+
+        return savedUser;
     }
 
     public void updateAccount(Long id, AccountUpdateRequest request) {
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = (auth.getPrincipal() instanceof User u) ? u : null;
-        if (currentUser == null) {
-            throw new AccessDeniedException("User not found or invalid token");
-        }
-
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User with ID: " + id + " not found"));
 
-        if (user.isAccountDeleted() && !currentUser.hasRole("ADMIN")) {
-            throw new AccountDeletedException("You can't modify a deleted account");
-        }
-
-        if (!currentUser.getEmail().equals(user.getEmail()) && !currentUser.hasRole("ADMIN")) {
-            throw new AccessDeniedException("You can only modify your account, unless you're an ADMIN");
-        }
+        checkOwnershipOrAdmin(user);
+        checkAccountNotDeleted(user);
 
         if (request.email() != null) {
             boolean emailExists = userRepository.existsByEmailAndIdNot(request.email(), id);
@@ -148,23 +157,13 @@ public class UserService {
     }
 
     public void deleteAccount(Long id) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (!(auth.getPrincipal() instanceof User currentUser)) {
-            throw new AccessDeniedException("User not found or invalid token");
-        }
-
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User with ID: " + id + " not found"));
 
-        if (user.isAccountDeleted()) {
-            throw new AccountDeletedException("You can't modify a deleted account");
-        }
-        if (!currentUser.getEmail().equals(user.getEmail()) && !currentUser.hasRole("ADMIN")) {
-            throw new AccessDeniedException("You can only delete your account, unless you're an ADMIN");
-        }
+        checkOwnershipOrAdmin(user);
+        checkAccountNotDeleted(user);
 
-        tokenService.invalidateAllUserTokens(id);
-
+        // A invalidação de token agora é feita pelo AuthService no logout/changePassword
         LocalDateTime now = LocalDateTime.now();
 
         userRepository.softDelete(id, AccountStatus.DELETED, now, now);
@@ -173,22 +172,46 @@ public class UserService {
     }
 
     public void updateStatus(Long id, StatusUpdateRequest status) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (!(auth.getPrincipal() instanceof User currentUser)) {
-            throw new AccessDeniedException("User not found or invalid token");
-        }
-
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User with ID: " + id + " not found"));
 
-        if (!currentUser.getEmail().equals(user.getEmail()) && !currentUser.hasRole("ADMIN")) {
-            throw new AccessDeniedException("You can only modify your account, unless you're an ADMIN");
-        }
-        if (user.isAccountDeleted() && !currentUser.hasRole("ADMIN")) {
-            throw new AccountDeletedException("You can't modify a deleted account");
-        }
+        checkOwnershipOrAdmin(user);
+        checkAccountNotDeleted(user);
 
         userRepository.updateStatus(status.status(), id);
     }
 
+    private User getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (!(auth.getPrincipal() instanceof User currentUser)) {
+            throw new AccessDeniedException("User not found or invalid token");
+        }
+        return currentUser;
+    }
+
+    private void checkOwnershipOrAdmin(User userToModify) {
+        User currentUser = getCurrentUser();
+        boolean isOwner = currentUser.getId().equals(userToModify.getId());
+        boolean isAdmin = currentUser.hasRole("ADMIN");
+
+        if (!isOwner && !isAdmin) {
+            throw new AccessDeniedException("You can only modify your own account, unless you're an ADMIN");
+        }
+    }
+
+    private void checkAccountNotDeleted(User user) {
+        User currentUser = getCurrentUser();
+        if (user.isAccountDeleted() && !currentUser.hasRole("ADMIN")) {
+            throw new AccountDeletedException("You can't modify a deleted account");
+        }
+    }
+
+    public void confirmAccount(String token) {
+        jwtUtil.validateValidationToken(token);
+        Long userId = jwtUtil.getEntityId(token);
+
+        User user = userRepository.findById(userId).orElseThrow(() -> new AccessDeniedException("Account not found with email: " + userId));
+        user.activate();
+        userRepository.save(user);
+    }
 }
