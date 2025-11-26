@@ -84,6 +84,9 @@ public class Supplier {
     @Column(name = "contact_phone", nullable = false)
     private String phone;
 
+    @Column(name = "supplier_image")
+    private String image;
+
     @NotNull
     @DecimalMin(value = "0.0", inclusive = true)
     @DecimalMax(value = "100.0", inclusive = true)
@@ -333,5 +336,13 @@ public class Supplier {
                 + ", phone='" + getPhone() + "'"
                 + ", commissionRate='" + getcommissionRate() + "'"
                 + "}";
+    }
+
+    public String getImage() {
+        return image;
+    }
+
+    public void setImage(String image) {
+        this.image = image;
     }
 }

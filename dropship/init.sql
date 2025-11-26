@@ -51,6 +51,7 @@ CREATE TABLE suppliers (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME DEFAULT NULL,
     status ENUM ('ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING', 'DELETED') NOT NULL DEFAULT 'ACTIVE',
+    supplier_image TEXT,
     contact_email VARCHAR(255) NOT NULL,
     contact_phone VARCHAR(20) NOT NULL,
     commission_rate DECIMAL(5, 2) NOT NULL CHECK (

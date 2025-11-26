@@ -19,7 +19,8 @@ public record SupplierResponse(
         SupplierTier tier,
         AccountStatus status,
         boolean aproved,
-        UserSummaryResponse primaryUser
+        UserSummaryResponse primaryUser,
+        String image
         ) {
 
     public static SupplierResponse fromEntity(Supplier supplier) {
@@ -51,7 +52,8 @@ public record SupplierResponse(
                 supplier.getTier(),
                 supplier.getStatus(),
                 supplier.getApproved(),
-                primaryUser
+                primaryUser,
+                supplier.getImage()
         );
 
     }

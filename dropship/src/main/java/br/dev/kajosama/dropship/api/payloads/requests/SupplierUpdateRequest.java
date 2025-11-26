@@ -13,7 +13,8 @@ public record SupplierUpdateRequest(
     String dbUrl,
     String email,
     @ValidPhone
-    String phone
+    String phone,
+    String image
 ) {
 
 }
