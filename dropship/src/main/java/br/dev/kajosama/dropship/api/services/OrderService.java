@@ -150,6 +150,44 @@ public class OrderService {
         return saveOrder(order);
     }
 
+    public void updateOrderStatus(Long id, OrderStatus newStatus) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Order with id " + id + " not found"));
+
+        if (!orderUserMatchesCurrentUser(order)) {
+            throw new AccessDeniedException("You can't modify an order that doesn't belong to you unless you are an ADMIN");
+        }
+
+        OrderStatus currentStatus = order.getStatus();
+
+        switch (currentStatus) {
+            case PENDING -> {
+                if (newStatus != OrderStatus.PAID && newStatus != OrderStatus.CANCELLED) {
+                    throw new IllegalStateException("A PENDING order can only be changed to PAID or CANCELLED.");
+                }
+            }
+            case PAID -> {
+                if (newStatus != OrderStatus.PROCESSING && newStatus != OrderStatus.REFUNDED && newStatus != OrderStatus.CANCELLED) {
+                    throw new IllegalStateException("A PAID order can only be changed to PROCESSING, REFUNDED or CANCELLED.");
+                }
+            }
+            case PROCESSING -> {
+                if (newStatus != OrderStatus.SHIPPED && newStatus != OrderStatus.CANCELLED) {
+                    throw new IllegalStateException("A PROCESSING order can only be changed to SHIPPED or CANCELLED.");
+                }
+            }
+            case SHIPPED -> {
+                if (newStatus != OrderStatus.DELIVERED) {
+                    throw new IllegalStateException("A SHIPPED order can only be changed to DELIVERED.");
+                }
+            }
+            case DELIVERED, CANCELLED, REFUNDED -> throw new IllegalStateException("Cannot change status of an order that is already " + currentStatus + ".");
+        }
+
+        order.setStatus(newStatus);
+        saveOrder(order);
+    }
+
     public boolean existsById(Long id) {
         return orderRepository.existsById(id);
     }

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import br.dev.kajosama.dropship.api.payloads.requests.OrderItemRequest;
 import br.dev.kajosama.dropship.api.payloads.responses.OrderResponse;
 import br.dev.kajosama.dropship.api.services.OrderService;
+import br.dev.kajosama.dropship.domain.model.enums.OrderStatus;
 
 @RestController
 @RequestMapping("/orders")
@@ -52,11 +53,19 @@ public class OrderController {
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("{id}")
+    @PatchMapping("/{id}")
     public ResponseEntity<OrderResponse> updatePendingOrder(@PathVariable Long id, @RequestBody List<OrderItemRequest> items) {
         return ResponseEntity.ok(
             OrderResponse.fromEntity(orderService.updatePendingOrder(id, items))
         );
     }
+
+    @PatchMapping("/status/{id}")
+    public ResponseEntity<Void> updateOrderStatus(@PathVariable Long id, @RequestBody OrderStatus status) {
+        orderService.updateOrderStatus(id, status);
+        return ResponseEntity.noContent().build();
+    }
+
+
 
 }
