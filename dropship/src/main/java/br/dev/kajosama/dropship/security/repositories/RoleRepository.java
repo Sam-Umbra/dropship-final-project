@@ -11,238 +11,344 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * @author Sam_Umbra
+ * @Description Repository interface for managing {@link Role} entities.
+ *              Provides methods for performing CRUD operations and custom
+ *              queries related to roles,
+ *              including searching, filtering, and managing user-role
+ *              relationships.
+ */
 @Repository
 public interface RoleRepository extends JpaRepository<Role, Long> {
 
-    // ==================== BASIC QUERIES ====================
-    /**
-     * Busca role por nome (case insensitive)
-     */
-    @Query("SELECT r FROM Role r WHERE UPPER(r.name) = UPPER(:name)")
-    Optional<Role> findByName(@Param("name") String name);
+        // ==================== BASIC QUERIES ====================
+        /**
+         * Finds a role by its name, ignoring case.
+         *
+         * @param name The name of the role to find.
+         * @return An {@link Optional} containing the found {@link Role} if it exists,
+         *         or an empty {@link Optional} otherwise.
+         */
+        @Query("SELECT r FROM Role r WHERE UPPER(r.name) = UPPER(:name)")
+        Optional<Role> findByName(@Param("name") String name);
 
-    /**
-     * Busca role por nome exato (case sensitive)
-     */
-    Optional<Role> findByNameIgnoreCase(String name);
+        /**
+         * Busca role por nome exato (case sensitive)
+         */
+        Optional<Role> findByNameIgnoreCase(String name);
 
-    /**
-     * Verifica se existe role com o nome
-     */
-    boolean existsByNameIgnoreCase(String name);
+        /**
+         * Checks if a role with the given name (case-insensitive) exists.
+         *
+         * @param name The name of the role to check.
+         * @return True if a role with the specified name exists, false otherwise.
+         */
+        boolean existsByNameIgnoreCase(String name);
 
-    /**
-     * Lista todas as roles ordenadas por nome
-     */
-    @Query("SELECT r FROM Role r ORDER BY r.name ASC")
-    List<Role> findAllOrderByName();
+        /**
+         * Retrieves a list of all roles, ordered alphabetically by name.
+         *
+         * @return A {@link List} of all {@link Role} entities, sorted by name.
+         */
 
-    // ==================== SEARCH QUERIES ====================
-    /**
-     * Busca roles por nome parcial (case insensitive)
-     */
-    @Query("SELECT r FROM Role r "
-            + "WHERE LOWER(r.name) LIKE LOWER(CONCAT('%', :name, '%'))")
-    Page<Role> findByNameContainingIgnoreCase(@Param("name") String name, Pageable pageable);
+        /**
+         * Lista todas as roles ordenadas por nome
+         */
+        @Query("SELECT r FROM Role r ORDER BY r.name ASC")
+        List<Role> findAllOrderByName();
 
-    /**
-     * Busca roles por descrição parcial
-     */
-    @Query("SELECT r FROM Role r "
-            + "WHERE LOWER(r.description) LIKE LOWER(CONCAT('%', :description, '%'))")
-    List<Role> findByDescriptionContainingIgnoreCase(@Param("description") String description);
+        // ==================== SEARCH QUERIES ====================
+        /**
+         * Finds a page of roles whose names contain the given string, ignoring case.
+         *
+         * @param name     The string to search for in role names.
+         * @param pageable The pagination information.
+         * @return A {@link Page} of {@link Role} entities matching the search criteria.
+         */
+        @Query("SELECT r FROM Role r "
+                        + "WHERE LOWER(r.name) LIKE LOWER(CONCAT('%', :name, '%'))")
+        Page<Role> findByNameContainingIgnoreCase(@Param("name") String name, Pageable pageable);
 
-    /**
-     * Busca avançada de roles
-     */
-    @Query("SELECT r FROM Role r "
-            + "WHERE (:name IS NULL OR LOWER(r.name) LIKE LOWER(CONCAT('%', :name, '%'))) "
-            + "AND (:description IS NULL OR LOWER(r.description) LIKE LOWER(CONCAT('%', :description, '%')))")
-    Page<Role> findWithFilters(
-            @Param("name") String name,
-            @Param("description") String description,
-            Pageable pageable
-    );
+        /**
+         * Finds a list of roles whose descriptions contain the given string, ignoring
+         * case.
+         *
+         * @param description The string to search for in role descriptions.
+         * @return A {@link List} of {@link Role} entities matching the search criteria.
+         */
+        @Query("SELECT r FROM Role r "
+                        + "WHERE LOWER(r.description) LIKE LOWER(CONCAT('%', :description, '%'))")
+        List<Role> findByDescriptionContainingIgnoreCase(@Param("description") String description);
 
-    // ==================== USER-ROLE RELATIONSHIP QUERIES ====================
-    /**
-     * Busca roles de um usuário específico
-     */
-    @Query("SELECT r FROM Role r "
-            + "JOIN r.userRoles ur "
-            + "WHERE ur.user.id = :userId")
-    List<Role> findRolesByUserId(@Param("userId") Long userId);
+        /**
+         * Busca avançada de roles
+         */
+        @Query("SELECT r FROM Role r "
+                        + "WHERE (:name IS NULL OR LOWER(r.name) LIKE LOWER(CONCAT('%', :name, '%'))) "
+                        + "AND (:description IS NULL OR LOWER(r.description) LIKE LOWER(CONCAT('%', :description, '%')))")
+        Page<Role> findWithFilters(
+                        @Param("name") String name,
+                        @Param("description") String description,
+                        Pageable pageable);
 
-    /**
-     * Busca roles que NÃO estão atribuídas a um usuário
-     */
-    @Query("SELECT r FROM Role r "
-            + "WHERE r.id NOT IN ("
-            + "    SELECT ur.role.id FROM UserRole ur WHERE ur.user.id = :userId"
-            + ")")
-    List<Role> findRolesNotAssignedToUser(@Param("userId") Long userId);
+        // ==================== USER-ROLE RELATIONSHIP QUERIES ====================
+        /**
+         * Finds all roles assigned to a specific user.
+         *
+         * @param userId The ID of the user.
+         * @return A {@link List} of {@link Role} entities assigned to the specified
+         *         user.
+         */
+        @Query("SELECT r FROM Role r "
+                        + "JOIN r.userRoles ur "
+                        + "WHERE ur.user.id = :userId")
+        List<Role> findRolesByUserId(@Param("userId") Long userId);
 
-    /**
-     * Conta quantos usuários têm uma role específica
-     */
-    @Query("SELECT COUNT(ur) FROM UserRole ur "
-            + "JOIN ur.user u "
-            + "WHERE ur.role.id = :roleId AND u.deletedAt IS NULL")
-    long countActiveUsersByRole(@Param("roleId") Long roleId);
+        /**
+         * Finds all roles that are not currently assigned to a specific user.
+         *
+         * @param userId The ID of the user.
+         * @return A {@link List} of {@link Role} entities not assigned to the specified
+         *         user.
+         */
+        @Query("SELECT r FROM Role r "
+                        + "WHERE r.id NOT IN ("
+                        + "    SELECT ur.role.id FROM UserRole ur WHERE ur.user.id = :userId"
+                        + ")")
+        List<Role> findRolesNotAssignedToUser(@Param("userId") Long userId);
 
-    /**
-     * Busca roles com mais de X usuários
-     */
-    @Query("SELECT r FROM Role r "
-            + "WHERE (SELECT COUNT(ur) FROM UserRole ur "
-            + "        JOIN ur.user u "
-            + "        WHERE ur.role.id = r.id AND u.deletedAt IS NULL) >= :minUsers")
-    List<Role> findRolesWithMinimumUsers(@Param("minUsers") long minUsers);
+        /**
+         * Counts the number of active users who have a specific role.
+         *
+         * @param roleId The ID of the role.
+         * @return The count of active users with the specified role.
+         */
+        @Query("SELECT COUNT(ur) FROM UserRole ur "
+                        + "JOIN ur.user u "
+                        + "WHERE ur.role.id = :roleId AND u.deletedAt IS NULL")
+        long countActiveUsersByRole(@Param("roleId") Long roleId);
 
-    /**
-     * Busca roles órfãs (sem usuários)
-     */
-    @Query("SELECT r FROM Role r "
-            + "WHERE NOT EXISTS ("
-            + "    SELECT ur FROM UserRole ur "
-            + "    JOIN ur.user u "
-            + "    WHERE ur.role.id = r.id AND u.deletedAt IS NULL"
-            + ")")
-    List<Role> findOrphanRoles();
+        /**
+         * Finds roles that are assigned to at least a minimum number of active users.
+         *
+         * @param minUsers The minimum number of active users a role must have.
+         * @return A {@link List} of {@link Role} entities meeting the criteria.
+         */
+        @Query("SELECT r FROM Role r "
+                        + "WHERE (SELECT COUNT(ur) FROM UserRole ur "
+                        + "        JOIN ur.user u "
+                        + "        WHERE ur.role.id = r.id AND u.deletedAt IS NULL) >= :minUsers")
+        List<Role> findRolesWithMinimumUsers(@Param("minUsers") long minUsers);
 
-    // ==================== DATE-BASED QUERIES ====================
-    /**
-     * Busca roles criadas em um período
-     */
-    @Query("SELECT r FROM Role r "
-            + "WHERE r.createdAt BETWEEN :startDate AND :endDate "
-            + "ORDER BY r.createdAt DESC")
-    List<Role> findRolesCreatedBetween(
-            @Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate
-    );
+        /**
+         * Finds roles that are not assigned to any active user (orphan roles).
+         *
+         * @return A {@link List} of orphan {@link Role} entities.
+         */
+        @Query("SELECT r FROM Role r "
+                        + "WHERE NOT EXISTS ("
+                        + "    SELECT ur FROM UserRole ur "
+                        + "    JOIN ur.user u "
+                        + "    WHERE ur.role.id = r.id AND u.deletedAt IS NULL"
+                        + ")")
+        List<Role> findOrphanRoles();
 
-    /**
-     * Busca roles criadas após uma data
-     */
-    @Query("SELECT r FROM Role r "
-            + "WHERE r.createdAt >= :date "
-            + "ORDER BY r.createdAt DESC")
-    List<Role> findRolesCreatedAfter(@Param("date") LocalDateTime date);
+        // ==================== DATE-BASED QUERIES ====================
+        /**
+         * Finds roles that were created within a specified date range.
+         * Results are ordered by creation date in descending order.
+         *
+         * @param startDate The start date and time of the range.
+         * @param endDate   The end date and time of the range.
+         * @return A {@link List} of {@link Role} entities created within the specified
+         *         period.
+         */
+        @Query("SELECT r FROM Role r "
+                        + "WHERE r.createdAt BETWEEN :startDate AND :endDate "
+                        + "ORDER BY r.createdAt DESC")
+        List<Role> findRolesCreatedBetween(
+                        @Param("startDate") LocalDateTime startDate,
+                        @Param("endDate") LocalDateTime endDate);
 
-    /**
-     * Busca roles mais antigas
-     */
-    @Query("SELECT r FROM Role r "
-            + "ORDER BY r.createdAt ASC")
-    List<Role> findOldestRoles(Pageable pageable);
+        /**
+         * Finds roles that were created after a specific date.
+         * Results are ordered by creation date in descending order.
+         *
+         * @param date The date and time after which roles should have been created.
+         * @return A {@link List} of {@link Role} entities created after the specified
+         *         date.
+         */
+        @Query("SELECT r FROM Role r "
+                        + "WHERE r.createdAt >= :date "
+                        + "ORDER BY r.createdAt DESC")
+        List<Role> findRolesCreatedAfter(@Param("date") LocalDateTime date);
 
-    /**
-     * Busca roles mais recentes
-     */
-    @Query("SELECT r FROM Role r "
-            + "ORDER BY r.createdAt DESC")
-    List<Role> findNewestRoles(Pageable pageable);
+        /**
+         * Finds the oldest roles, based on their creation date.
+         * The number of roles returned is determined by the {@link Pageable} object.
+         *
+         * @param pageable The pagination information (e.g., to limit the number of
+         *                 results).
+         * @return A {@link List} of the oldest {@link Role} entities.
+         */
+        @Query("SELECT r FROM Role r "
+                        + "ORDER BY r.createdAt ASC")
+        List<Role> findOldestRoles(Pageable pageable);
 
-    // ==================== STATISTICS QUERIES ====================
-    /**
-     * Conta roles criadas por mês
-     */
-    @Query("SELECT YEAR(r.createdAt) as year, MONTH(r.createdAt) as month, COUNT(r) as count "
-            + "FROM Role r "
-            + "WHERE r.createdAt >= :startDate "
-            + "GROUP BY YEAR(r.createdAt), MONTH(r.createdAt) "
-            + "ORDER BY year DESC, month DESC")
-    List<Object[]> countRolesByMonth(@Param("startDate") LocalDateTime startDate);
+        /**
+         * Finds the most recently created roles.
+         * The number of roles returned is determined by the {@link Pageable} object.
+         *
+         * @param pageable The pagination information (e.g., to limit the number of
+         *                 results).
+         * @return A {@link List} of the newest {@link Role} entities.
+         */
+        @Query("SELECT r FROM Role r "
+                        + "ORDER BY r.createdAt DESC")
+        List<Role> findNewestRoles(Pageable pageable);
 
-    /**
-     * Estatísticas de uso de roles
-     */
-    @Query("SELECT r.name, COUNT(ur) as userCount "
-            + "FROM Role r "
-            + "LEFT JOIN r.userRoles ur "
-            + "LEFT JOIN ur.user u ON u.deletedAt IS NULL "
-            + "GROUP BY r.id, r.name "
-            + "ORDER BY userCount DESC")
-    List<Object[]> getRoleUsageStatistics();
+        // ==================== STATISTICS QUERIES ====================
+        /**
+         * Counts the number of roles created per month, starting from a given date.
+         *
+         * @param startDate The start date from which to count roles.
+         * @return A {@link List} of {@code Object[]} where each array contains the
+         *         year, month, and count of roles created.
+         */
+        @Query("SELECT YEAR(r.createdAt) as year, MONTH(r.createdAt) as month, COUNT(r) as count "
+                        + "FROM Role r "
+                        + "WHERE r.createdAt >= :startDate "
+                        + "GROUP BY YEAR(r.createdAt), MONTH(r.createdAt) "
+                        + "ORDER BY year DESC, month DESC")
+        List<Object[]> countRolesByMonth(@Param("startDate") LocalDateTime startDate);
 
-    /**
-     * Top roles mais utilizadas
-     */
-    @Query("SELECT r FROM Role r "
-            + "LEFT JOIN r.userRoles ur "
-            + "LEFT JOIN ur.user u ON u.deletedAt IS NULL "
-            + "GROUP BY r.id "
-            + "ORDER BY COUNT(ur) DESC")
-    List<Role> findMostUsedRoles(Pageable pageable);
+        /**
+         * Retrieves statistics on how many active users are assigned to each role.
+         *
+         * @return A {@link List} of {@code Object[]} where each array contains the role
+         *         name and the count of active users.
+         */
+        @Query("SELECT r.name, COUNT(ur) as userCount "
+                        + "FROM Role r "
+                        + "LEFT JOIN r.userRoles ur "
+                        + "LEFT JOIN ur.user u ON u.deletedAt IS NULL "
+                        + "GROUP BY r.id, r.name "
+                        + "ORDER BY userCount DESC")
+        List<Object[]> getRoleUsageStatistics();
 
-    // ==================== ADMIN SPECIFIC QUERIES ====================
-    /**
-     * Busca role ADMIN (assumindo que existe uma)
-     */
-    @Query("SELECT r FROM Role r WHERE UPPER(r.name) = 'ADMIN'")
-    Optional<Role> findAdminRole();
+        /**
+         * Finds the most used roles, based on the number of active users assigned to
+         * them.
+         * The number of roles returned is determined by the {@link Pageable} object.
+         *
+         * @param pageable The pagination information (e.g., to limit the number of
+         *                 results).
+         * @return A {@link List} of {@link Role} entities, ordered by the count of
+         *         active users in descending order.
+         */
+        @Query("SELECT r FROM Role r "
+                        + "LEFT JOIN r.userRoles ur "
+                        + "LEFT JOIN ur.user u ON u.deletedAt IS NULL "
+                        + "GROUP BY r.id "
+                        + "ORDER BY COUNT(ur) DESC")
+        List<Role> findMostUsedRoles(Pageable pageable);
 
-    /**
-     * Busca roles administrativas (contém 'ADMIN' no nome)
-     */
-    @Query("SELECT r FROM Role r WHERE UPPER(r.name) LIKE '%ADMIN%'")
-    List<Role> findAdminRoles();
+        // ==================== ADMIN SPECIFIC QUERIES ====================
+        /**
+         * Finds the "ADMIN" role. This query assumes there is a role named 'ADMIN' in
+         * the system.
+         *
+         * @return An {@link Optional} containing the "ADMIN" {@link Role} if found, or
+         *         an empty {@link Optional} otherwise.
+         */
+        @Query("SELECT r FROM Role r WHERE UPPER(r.name) = 'ADMIN'")
+        Optional<Role> findAdminRole();
 
-    /**
-     * Busca roles de usuário comum (contém 'USER' no nome)
-     */
-    @Query("SELECT r FROM Role r WHERE UPPER(r.name) LIKE '%USER%'")
-    List<Role> findUserRoles();
+        /**
+         * Finds all roles that have 'ADMIN' in their name (case-insensitive).
+         *
+         * @return A {@link List} of administrative {@link Role} entities.
+         */
+        @Query("SELECT r FROM Role r WHERE UPPER(r.name) LIKE '%ADMIN%'")
+        List<Role> findAdminRoles();
 
-    /**
-     * Verifica se existe pelo menos um admin no sistema
-     */
-    @Query("SELECT COUNT(ur) > 0 FROM UserRole ur "
-            + "JOIN ur.user u "
-            + "JOIN ur.role r "
-            + "WHERE UPPER(r.name) = 'ADMIN' "
-            + "AND u.status = 'ACTIVE' "
-            + "AND u.deletedAt IS NULL")
-    boolean hasActiveAdmin();
+        /**
+         * Finds all roles that have 'USER' in their name (case-insensitive).
+         *
+         * @return A {@link List} of common user {@link Role} entities.
+         */
+        @Query("SELECT r FROM Role r WHERE UPPER(r.name) LIKE '%USER%'")
+        List<Role> findUserRoles();
 
-    // ==================== BULK OPERATIONS ====================
-    /**
-     * Lista roles por lista de IDs
-     */
-    @Query("SELECT r FROM Role r WHERE r.id IN :roleIds")
-    List<Role> findByIdIn(@Param("roleIds") List<Long> roleIds);
+        /**
+         * Checks if there is at least one active user with the 'ADMIN' role in the
+         * system.
+         *
+         * @return True if an active admin exists, false otherwise.
+         */
+        @Query("SELECT COUNT(ur) > 0 FROM UserRole ur "
+                        + "JOIN ur.user u "
+                        + "JOIN ur.role r "
+                        + "WHERE UPPER(r.name) = 'ADMIN' "
+                        + "AND u.status = 'ACTIVE' "
+                        + "AND u.deletedAt IS NULL")
+        boolean hasActiveAdmin();
 
-    /**
-     * Lista roles por lista de nomes
-     */
-    @Query("SELECT r FROM Role r WHERE UPPER(r.name) IN :roleNames")
-    List<Role> findByNameIn(@Param("roleNames") List<String> roleNames);
+        // ==================== BULK OPERATIONS ====================
+        /**
+         * Finds a list of roles by their IDs.
+         *
+         * @param roleIds A {@link List} of role IDs to search for.
+         * @return A {@link List} of {@link Role} entities whose IDs are in the provided
+         *         list.
+         */
+        @Query("SELECT r FROM Role r WHERE r.id IN :roleIds")
+        List<Role> findByIdIn(@Param("roleIds") List<Long> roleIds);
 
-    // ==================== CUSTOM NAMED QUERIES ====================
-    /**
-     * Busca roles por padrão de nome usando LIKE
-     */
-    @Query("SELECT r FROM Role r WHERE r.name LIKE :pattern")
-    List<Role> findByNamePattern(@Param("pattern") String pattern);
+        /**
+         * Finds a list of roles by their names (case-insensitive).
+         *
+         * @param roleNames A {@link List} of role names to search for.
+         * @return A {@link List} of {@link Role} entities whose names are in the
+         *         provided list.
+         */
+        @Query("SELECT r FROM Role r WHERE UPPER(r.name) IN :roleNames")
+        List<Role> findByNameIn(@Param("roleNames") List<String> roleNames);
 
-    /**
-     * Busca roles ativas (que têm pelo menos um usuário ativo)
-     */
-    @Query("SELECT DISTINCT r FROM Role r "
-            + "JOIN r.userRoles ur "
-            + "JOIN ur.user u "
-            + "WHERE u.status = 'ACTIVE' AND u.deletedAt IS NULL")
-    List<Role> findActiveRoles();
+        // ==================== CUSTOM NAMED QUERIES ====================
+        /**
+         * Finds roles whose names match a given pattern using SQL LIKE operator.
+         *
+         * @param pattern The pattern to match against role names (e.g., "%ADMIN%").
+         * @return A {@link List} of {@link Role} entities matching the pattern.
+         */
+        @Query("SELECT r FROM Role r WHERE r.name LIKE :pattern")
+        List<Role> findByNamePattern(@Param("pattern") String pattern);
 
-    /**
-     * Busca roles inativas (sem usuários ativos)
-     */
-    @Query("SELECT r FROM Role r "
-            + "WHERE r.id NOT IN ("
-            + "    SELECT DISTINCT ur.role.id FROM UserRole ur "
-            + "    JOIN ur.user u "
-            + "    WHERE u.status = 'ACTIVE' AND u.deletedAt IS NULL"
-            + ")")
-    List<Role> findInactiveRoles();
+        /**
+         * Finds all active roles, defined as roles that are assigned to at least one
+         * active user.
+         *
+         * @return A {@link List} of active {@link Role} entities.
+         */
+        @Query("SELECT DISTINCT r FROM Role r "
+                        + "JOIN r.userRoles ur "
+                        + "JOIN ur.user u "
+                        + "WHERE u.status = 'ACTIVE' AND u.deletedAt IS NULL")
+        List<Role> findActiveRoles();
+
+        /**
+         * Finds all inactive roles, defined as roles that are not assigned to any
+         * active user.
+         *
+         * @return A {@link List} of inactive {@link Role} entities.
+         */
+        @Query("SELECT r FROM Role r "
+                        + "WHERE r.id NOT IN ("
+                        + "    SELECT DISTINCT ur.role.id FROM UserRole ur "
+                        + "    JOIN ur.user u "
+                        + "    WHERE u.status = 'ACTIVE' AND u.deletedAt IS NULL"
+                        + ")")
+        List<Role> findInactiveRoles();
 }
