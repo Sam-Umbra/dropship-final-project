@@ -4,7 +4,6 @@ import java.util.Set;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 
 /**
  * Represents the request payload for updating an existing product review.
@@ -24,7 +23,6 @@ public record ReviewUpdateRequest(
         /**
          * The updated text content of the review.
          */
-        @NotBlank
         String comment,
         /**
          * The updated set of image URLs for the review.
