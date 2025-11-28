@@ -204,4 +204,11 @@ public class OrderService {
     public boolean userHasPendingOrder(Long userId) {
         return orderRepository.existsByUserIdAndStatus(userId, OrderStatus.PENDING);
     }
+
+    public boolean hasUserPurchasedProduct(Long userId, Long productId) {
+        return orderRepository.findAllByUserId(userId).stream()
+            .filter(order -> order.getStatus() == OrderStatus.DELIVERED)
+            .flatMap(order -> order.getItems().stream())
+            .anyMatch(item -> item.getProduct().getId().equals(productId));
+    }
 }
