@@ -95,7 +95,7 @@ public class ProductController {
     }
 
     @GetMapping("/supplier/name/{name}")
-    public ResponseEntity<List<ProductResponse>> getProductsBySupplierId(@PathVariable String name) {
+    public ResponseEntity<List<ProductResponse>> getProductsBySupplierName(@PathVariable String name) {
         if (productService.getProductsBySupplierName(name).isEmpty()) {
             return ResponseEntity.notFound().build();
         }

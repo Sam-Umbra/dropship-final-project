@@ -16,22 +16,43 @@ import br.dev.kajosama.dropship.domain.repositories.ProductRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 
+/**
+ * @author Sam_Umbra
+ * @Description Service class for managing {@link Favorites} entities.
+ *              Provides business logic for adding, removing, and retrieving
+ *              user favorite products.
+ *              It interacts with {@link FavoritesRepository} and
+ *              {@link ProductRepository}.
+ */
 @Service
 public class FavoritesService {
 
+    /**
+     * Repository for {@link Favorites} entities.
+     */
     @Autowired
     private FavoritesRepository favoritesRepository;
 
+    /**
+     * Repository for {@link Product} entities.
+     */
     @Autowired
     private ProductRepository productRepository;
 
     /**
-     * Adiciona uma lista de produtos aos favoritos de um usuário.
+     * Adds a list of products to a user's favorites.
+     * This method is idempotent, meaning it will not add a product to favorites
+     * if it's already there for the given user.
      *
-     * @param user O usuário que está favoritando o produto.
-     * @param productIds A lista de IDs de produtos a serem favoritados.
-     * @return A lista de objetos Favorites salvos.
-     * @throws EntityNotFoundException Se o produto não for encontrado.
+     * @param user       The {@link User} who is adding products to their favorites.
+     * @param productIds A {@link List} of product IDs to be favorited.
+     * @return A {@link List} of {@link Favorites} objects that were newly saved.
+     *         Returns an empty list if {@code productIds} is null or empty, or if
+     *         all
+     *         specified products are already favorited by the user.
+     * @throws EntityNotFoundException If any product specified in
+     *                                 {@code productIds}
+     *                                 is not found in the database.
      */
     @Transactional
     public List<Favorites> addFavorites(User user, List<Long> productIds) {
@@ -63,11 +84,14 @@ public class FavoritesService {
     }
 
     /**
-     * Remove produtos dos favoritos de um usuário. Operação idempotente: não
-     * falha se o favorito já não existir.
+     * Removes products from a user's favorites.
+     * This operation is idempotent: it will not fail if a favorite entry
+     * for a given product and user does not exist.
      *
-     * @param user O usuário.
-     * @param productIds Os IDs dos produtos a serem removidos.
+     * @param user       The {@link User} whose favorites are to be modified.
+     * @param productIds A {@link Set} of product IDs to be removed from favorites.
+     *                   If {@code productIds} is null or empty, the method does
+     *                   nothing.
      */
     @Transactional
     public void removeFavorites(User user, Set<Long> productIds) {
@@ -86,10 +110,12 @@ public class FavoritesService {
     }
 
     /**
-     * Lista os produtos favoritados por um usuário.
+     * Retrieves a list of all favorite products for a given user.
      *
-     * @param user O usuário.
-     * @return Uma lista de favoritos.
+     * @param user The {@link User} whose favorite products are to be retrieved.
+     * @return A {@link List} of {@link Favorites} entities belonging to the
+     *         specified user.
+     *         Returns an empty list if the user has no favorite products.
      */
     public List<Favorites> getFavorites(User user) {
         return favoritesRepository.findByUser(user);

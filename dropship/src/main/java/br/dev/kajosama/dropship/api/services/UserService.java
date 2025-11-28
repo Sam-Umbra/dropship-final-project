@@ -13,7 +13,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework..core.userdetails.UsernameNotFoundException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,8 +35,15 @@ import br.dev.kajosama.dropship.security.repositories.RoleRepository;
 import jakarta.persistence.EntityNotFoundException;
 
 /**
- *
  * @author Sam_Umbra
+ * @Description Service class for managing {@link User} entities.
+ *              Provides business logic for user-related operations such as
+ *              registration,
+ *              account updates, deletion, status changes, and authentication.
+ *              It interacts with {@link UserRepository},
+ *              {@link RoleRepository},
+ *              {@link PasswordEncoder}, {@link UserMapper},
+ *              {@link JwtTokenUtil}, and {@link EmailService}.
  */
 @Service
 @Transactional
@@ -60,6 +67,14 @@ public class UserService {
     @Autowired
     EmailService emailService;
 
+    /**
+     * Loads a user by their username (email) for authentication purposes.
+     *
+     * @param username The email address of the user.
+     * @return A {@link UserDetails} object representing the authenticated user.
+     * @throws UsernameNotFoundException If no user with the given username is
+     *                                   found.
+     */
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByEmailWithRoles(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
@@ -69,18 +84,42 @@ public class UserService {
         return user;
     }
 
+    /**
+     * Checks if a user exists by their ID.
+     *
+     * @param id The ID of the user to check.
+     * @return True if a user with the specified ID exists, false otherwise.
+     */
     public boolean existsById(Long id) {
         return userRepository.existsById(id);
     }
 
+    /**
+     * Retrieves a user by their ID.
+     *
+     * @param id The ID of the user to retrieve.
+     * @return An {@link Optional} containing the found {@link User} if it exists,
+     *         or an empty {@link Optional} if no user with the given ID is found.
+     */
     public Optional<User> getUserById(Long id) {
         return userRepository.findById(id);
     }
 
+    /**
+     * Retrieves a list of all registered users.
+     *
+     * @return A {@link List} of all {@link User} entities.
+     */
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
+    /**
+     * Retrieves a list of users by their IDs.
+     *
+     * @param ids A {@link List} of user IDs to retrieve.
+     * @return A {@link List} of {@link User} entities matching the provided IDs.
+     */
     public List<User> getAllUserById(List<Long> ids) {
         return userRepository.findAllById(ids);
     }
@@ -89,6 +128,16 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    /**
+     * Registers a new user account.
+     *
+     * @param user        The {@link User} object containing the user's details.
+     * @param rawPassword The raw password for the new user.
+     * @return The newly registered {@link User} entity.
+     * @throws EntityAlreadyExistsException If a user with the same email or CPF
+     *                                      already exists.
+     * @throws EntityNotFoundException      If the default "ROLE_USER" is not found.
+     */
     public User registerAccount(User user, String rawPassword) {
 
         if (userRepository.existsByEmail(user.getEmail())) {
@@ -112,19 +161,31 @@ public class UserService {
                 "User",
                 savedUser.getId(),
                 (3 * 60 * 1000),
-                "VALIDATION"
-        );
+                "VALIDATION");
 
         emailService.sendEmailWithConfirmationButton(
                 savedUser.getEmail(),
                 "Confirmação de Conta",
                 "http://localhost:8080/user/email/confirm-account?token=" + token,
-                "Conta da Loja"
-        );
+                "Conta da Loja");
 
         return savedUser;
     }
 
+    /**
+     * Updates an existing user account.
+     *
+     * @param id      The ID of the user to update.
+     * @param request The {@link AccountUpdateRequest} containing the updated user
+     *                information.
+     * @throws EntityNotFoundException      If the user with the specified ID is not
+     *                                      found.
+     * @throws AccessDeniedException        If the current user does not have
+     *                                      permission to modify the account.
+     * @throws EntityAlreadyExistsException If the updated email already exists for
+     *                                      another user.
+     * @throws IllegalArgumentException     If the provided phone number is invalid.
+     */
     public void updateAccount(Long id, AccountUpdateRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User with ID: " + id + " not found"));
@@ -156,6 +217,16 @@ public class UserService {
         userRepository.save(user);
     }
 
+    /**
+     * Soft deletes a user account by setting its status to DELETED and recording
+     * the deletion timestamp.
+     *
+     * @param id The ID of the user to delete.
+     * @throws EntityNotFoundException If the user with the specified ID is not
+     *                                 found.
+     * @throws AccessDeniedException   If the current user does not have permission
+     *                                 to delete the account.
+     */
     public void deleteAccount(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User with ID: " + id + " not found"));
@@ -163,7 +234,8 @@ public class UserService {
         checkOwnershipOrAdmin(user);
         checkAccountNotDeleted(user);
 
-        // A invalidação de token agora é feita pelo AuthService no logout/changePassword
+        // A invalidação de token agora é feita pelo AuthService no
+        // logout/changePassword
         LocalDateTime now = LocalDateTime.now();
 
         userRepository.softDelete(id, AccountStatus.DELETED, now, now);
@@ -171,6 +243,16 @@ public class UserService {
         userRepository.updateLastExit(id);
     }
 
+    /**
+     * Updates the status of a user account.
+     *
+     * @param id     The ID of the user whose status is to be updated.
+     * @param status The {@link StatusUpdateRequest} containing the new status.
+     * @throws EntityNotFoundException If the user with the specified ID is not
+     *                                 found.
+     * @throws AccessDeniedException   If the current user does not have permission
+     *                                 to modify the account.
+     */
     public void updateStatus(Long id, StatusUpdateRequest status) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User with ID: " + id + " not found"));
@@ -181,6 +263,13 @@ public class UserService {
         userRepository.updateStatus(status.status(), id);
     }
 
+    /**
+     * Retrieves the currently authenticated user from the Spring Security context.
+     *
+     * @return The {@link User} object of the current authenticated user.
+     * @throws AccessDeniedException If no user is authenticated or the token is
+     *                               invalid.
+     */
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (!(auth.getPrincipal() instanceof User currentUser)) {
@@ -189,6 +278,16 @@ public class UserService {
         return currentUser;
     }
 
+    /**
+     * Checks if the current authenticated user has permission to modify a target
+     * user's account.
+     * Permission is granted if the current user is the owner of the account or has
+     * an "ADMIN" role.
+     *
+     * @param userToModify The {@link User} account that is intended to be modified.
+     * @throws AccessDeniedException If the current user does not have the necessary
+     *                               permissions.
+     */
     private void checkOwnershipOrAdmin(User userToModify) {
         User currentUser = getCurrentUser();
         boolean isOwner = currentUser.getId().equals(userToModify.getId());
@@ -199,6 +298,15 @@ public class UserService {
         }
     }
 
+    /**
+     * Checks if a user account is marked as deleted.
+     * If the account is deleted and the current user is not an "ADMIN", an
+     * {@link AccountDeletedException} is thrown.
+     *
+     * @param user The {@link User} account to check.
+     * @throws AccountDeletedException If the account is deleted and the current
+     *                                 user is not an admin.
+     */
     private void checkAccountNotDeleted(User user) {
         User currentUser = getCurrentUser();
         if (user.isAccountDeleted() && !currentUser.hasRole("ADMIN")) {
@@ -206,11 +314,19 @@ public class UserService {
         }
     }
 
+    /**
+     * Confirms a user account using a validation token.
+     *
+     * @param token The validation token received via email.
+     * @throws AccessDeniedException If the token is invalid or the user associated
+     *                               with the token is not found.
+     */
     public void confirmAccount(String token) {
         jwtUtil.validateValidationToken(token);
         Long userId = jwtUtil.getEntityId(token);
 
-        User user = userRepository.findById(userId).orElseThrow(() -> new AccessDeniedException("Account not found with email: " + userId));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AccessDeniedException("Account not found with email: " + userId));
         user.activate();
         userRepository.save(user);
     }

@@ -10,17 +10,51 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+/**
+ * @author Sam_Umbra
+ * @Description Service class for managing token versions and invalidation using
+ *              Redis.
+ *              This service is crucial for implementing a robust token
+ *              invalidation mechanism,
+ *              allowing for immediate logout or password change effects across
+ *              all active tokens
+ *              for a given user. It interacts with {@link RedisTemplate} to
+ *              store and retrieve
+ *              token version numbers.
+ */
 @Service
 public class TokenService {
 
+    /**
+     * Logger for the {@link TokenService} class.
+     */
     private static final Logger LOGGER = LoggerFactory.getLogger(TokenService.class);
 
+    /**
+     * Redis template for performing Redis operations.
+     */
     private final RedisTemplate<String, String> redisTemplate;
 
+    /**
+     * Constructs a {@link TokenService} with the necessary {@link RedisTemplate}
+     * dependency.
+     *
+     * @param redisTemplate The {@link RedisTemplate} for Redis data access.
+     */
     public TokenService(RedisTemplate<String, String> redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
 
+    /**
+     * Invalidates all active tokens for a specific user by incrementing their token
+     * version in Redis.
+     * This effectively makes all previously issued tokens with an older version
+     * invalid.
+     * The new token version is set to expire after 30 days.
+     *
+     * @param userId The ID of the user whose tokens are to be invalidated.
+     * @throws RuntimeException If there is a failure in communicating with Redis.
+     */
     public void invalidateAllUserTokens(Long userId) {
         try {
             String key = "user:token:version:" + userId;
@@ -33,6 +67,13 @@ public class TokenService {
         }
     }
 
+    /**
+     * Retrieves the current token version for a specific user from Redis.
+     * If no version is found, it defaults to 0L.
+     *
+     * @param userId The ID of the user whose token version is to be retrieved.
+     * @return The current token version for the user.
+     */
     public Long getUserTokenVersion(Long userId) {
         try {
             String key = "user:token:version:" + userId;
@@ -47,6 +88,16 @@ public class TokenService {
         }
     }
 
+    /**
+     * Checks if a given token version is valid for a specific user.
+     * A token version is considered valid if it matches the current token version
+     * stored in Redis for that user.
+     *
+     * @param userId       The ID of the user.
+     * @param tokenVersion The token version to validate against the current
+     *                     version.
+     * @return True if the provided token version is valid, false otherwise.
+     */
     public boolean isTokenVersionValid(Long userId, Long tokenVersion) {
         try {
             Long currentVersion = getUserTokenVersion(userId);
@@ -60,6 +111,14 @@ public class TokenService {
         }
     }
 
+    /**
+     * Retrieves all user token versions currently stored in Redis.
+     * This method scans for keys matching "user:token:version:*" and returns a map
+     * of these keys and their values.
+     *
+     * @return A {@link Map} where keys are Redis keys (e.g.,
+     *         "user:token:version:123") and values are the token versions.
+     */
     public Map<String, String> getAllUserTokens() {
         Map<String, String> tokens = new HashMap<>();
         try {

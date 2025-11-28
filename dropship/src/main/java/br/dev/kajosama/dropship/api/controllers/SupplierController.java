@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import br.dev.kajosama.dropship.api.payloads.requests.SupplierRegisterRequest;
@@ -61,6 +62,12 @@ public class SupplierController {
     public ResponseEntity<List<SupplierResponse>> findSuppliersByName(@PathVariable String name) {
         List<SupplierResponse> responses = supplierService.findSuppliersByName(name);
         return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/email/confirm-account")
+    public ResponseEntity<Void> confirmSupplier(@RequestParam("token") String token) {
+        supplierService.confirmSupplier(token);
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
