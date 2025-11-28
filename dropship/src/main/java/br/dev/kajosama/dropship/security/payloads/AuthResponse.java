@@ -5,11 +5,25 @@
 package br.dev.kajosama.dropship.security.payloads;
 
 /**
+ * Represents the response payload after a successful authentication.
  *
  * @author Sam_Umbra
+ * @param email The email of the authenticated user.
+ * @param accessToken The JWT access token for authorizing subsequent requests.
+ * @param refreshToken The JWT refresh token used to obtain a new access token.
  */
 public record AuthResponse(
+        /**
+         * The email of the authenticated user.
+         */
         String email,
+        /**
+         * The JWT access token for authorizing subsequent requests.
+         */
         String accessToken,
-        String refreshToken) 
-{}
+        /**
+         * The JWT refresh token used to obtain a new access token.
+         */
+        String refreshToken) {
+
+}
