@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
 import br.dev.kajosama.dropship.domain.model.entities.User;
 import br.dev.kajosama.dropship.security.entities.Role;
 import br.dev.kajosama.dropship.security.services.TokenService;
@@ -31,7 +33,9 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class JwtTokenFilter extends OncePerRequestFilter {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(JwtTokenFilter.class);
+
     @Autowired
     private JwtTokenUtil jwtUtil;
 
@@ -39,13 +43,18 @@ public class JwtTokenFilter extends OncePerRequestFilter {
     private TokenService tokenService;
 
     @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain)
+            throws ServletException, IOException {
+
         if (!hasAuthorizationBearer(request)) {
             filterChain.doFilter(request, response);
             return;
         }
+
         String token = getAccessToken(request);
+
         try {
             if (jwtUtil.validateToken(token) && isTokenVersionValid(token)) {
                 setAuthenticationContext(token, request);
@@ -65,16 +74,20 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             handleInvalidToken(response, "Invalid Token.", HttpStatus.UNAUTHORIZED);
             return;
         }
+
         filterChain.doFilter(request, response);
     }
 
-    private void handleInvalidToken(HttpServletResponse response, String message, HttpStatus status)
-            throws IOException {
+    private void handleInvalidToken(HttpServletResponse response, String message, HttpStatus status) throws IOException {
         response.setStatus(status.value());
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-        String jsonResponse = String.format("{\"error\": \"%s\", \"timestamp\": \"%s\"}", message,
-                Instant.now().toString());
+
+        String jsonResponse = String.format(
+                "{\"error\": \"%s\", \"timestamp\": \"%s\"}",
+                message,
+                Instant.now().toString()
+        );
         response.getWriter().write(jsonResponse);
     }
 
@@ -96,10 +109,12 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         try {
             UserDetails userDetails = getUserDetails(token);
             List<SimpleGrantedAuthority> authorities = getAuthoritiesFromToken(token);
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails,
-                    null, authorities);
+
+            UsernamePasswordAuthenticationToken authentication
+                    = new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
+
         } catch (Exception e) {
             LOGGER.error("Error setting authentication context: {}", e.getMessage());
             SecurityContextHolder.clearContext();
@@ -117,6 +132,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         userDetails.setEmail(jwtUtil.getEmail(token));
         userDetails.setId(jwtUtil.getUserId(token));
         userDetails.setName(jwtUtil.getUserName(token));
+
         // popula roles
         Set<UserRole> roles = jwtUtil.getRoles(token).stream()
                 .map(roleName -> {
@@ -125,7 +141,10 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                     return new UserRole(userDetails, role, LocalDateTime.now());
                 })
                 .collect(Collectors.toSet());
+
         userDetails.setUserRoles(roles);
+
         return userDetails;
     }
+
 }
