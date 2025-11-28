@@ -182,7 +182,7 @@ public class ApplicationSecurity {
         configuration.addAllowedOriginPattern("*");
         configuration.addAllowedMethod("*");
         configuration.addAllowedHeader("*");
-        configuration.setAllowCredentials(false); // Importante se usar "*"
+        configuration.setAllowCredentials(true); // Importante se usar "*"
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
