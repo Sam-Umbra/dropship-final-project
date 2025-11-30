@@ -30,41 +30,93 @@ import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.WeakKeyException;
 import br.dev.kajosama.dropship.domain.model.entities.User;
 
+/**
+ * Utility class for handling JSON Web Tokens (JWT). Provides methods for
+ * generating, validating, and parsing different types of tokens, including
+ * access, refresh, and validation tokens.
+ *
+ * @author Sam_Umbra
+ */
 @Component
 public class JwtTokenUtil {
 
-    // Hora Minuto Segundo
-    private static final long EXPIRE_DURATION = 15 * 60 * 1000; // 15 minutos
+    /**
+     * Expiration time for access tokens: 15 minutes.
+     */
+    private static final long EXPIRE_DURATION = 15 * 60 * 1000;
 
-    private static final long REFRESH_EXPIRE_DURATION = 3 * 60 * 60 * 1000; // 12 Horas
+    /**
+     * Expiration time for refresh tokens: 3 hours.
+     */
+    private static final long REFRESH_EXPIRE_DURATION = 3 * 60 * 60 * 1000;
 
+    /**
+     * Logger for this class.
+     */
     private static final Logger LOGGER = LoggerFactory.getLogger(JwtTokenUtil.class);
 
+    /**
+     * Configuration properties for JWT, such as the secret key.
+     */
     private final JwtProperties jwtProperties;
+    /**
+     * Jackson object mapper for JSON serialization/deserialization.
+     */
     private final ObjectMapper objectMapper;
 
+    /**
+     * Constructs the JwtTokenUtil with necessary dependencies.
+     *
+     * @param jwtProperties The JWT configuration properties.
+     * @param objectMapper The Jackson object mapper.
+     */
     public JwtTokenUtil(JwtProperties jwtProperties, ObjectMapper objectMapper) {
         this.jwtProperties = jwtProperties;
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * Generates a new JWT access token for a user.
+     *
+     * @param user The user for whom the token is generated.
+     * @param tokenVersion The current token version for the user.
+     * @return A JWT access token string.
+     */
     public String generateAccessToken(User user, Long tokenVersion) {
         return generateToken(user, tokenVersion, EXPIRE_DURATION, "ACCESS");
     }
 
+    /**
+     * Generates a new JWT refresh token for a user.
+     *
+     * @param user The user for whom the token is generated.
+     * @param tokenVersion The current token version for the user.
+     * @return A JWT refresh token string.
+     */
     public String generateRefreshToken(User user, Long tokenVersion) {
         return generateToken(user, tokenVersion, REFRESH_EXPIRE_DURATION, "REFRESH");
     }
 
-    public String generateValidationToken(String entityName, Long entityId ,long expiration, String tokenType) {
+    /**
+     * Generates a generic validation token for a specific entity and purpose.
+     * This is used for actions like email confirmation where a user context
+     * isn't needed.
+     *
+     * @param entityName The name of the entity (e.g., "User", "Supplier").
+     * @param entityId The ID of the entity.
+     * @param expiration The expiration duration in milliseconds.
+     * @param tokenType A custom token type identifier.
+     * @return A JWT validation token string.
+     */
+    public String generateValidationToken(String entityName, Long entityId, long expiration, String tokenType) {
         try {
-            
+
             SecretKey secretKey = getSecretKey();
             Claims claims = Jwts.claims();
             claims.put("entityId", entityId);
             claims.put("entityName", entityName);
             claims.put("tokenType", tokenType);
-            
+
             return Jwts.builder()
                     .setClaims(claims)
                     .setIssuer("DropShip-API")
@@ -74,11 +126,18 @@ public class JwtTokenUtil {
                     .compact();
 
         } catch (InvalidKeyException e) {
-            LOGGER.error("Error creating {} validation token for entity type {}: {}", tokenType,entityName, e.getMessage());
+            LOGGER.error("Error creating {} validation token for entity type {}: {}", tokenType, entityName, e.getMessage());
             throw new RuntimeException("Error creating token", e);
         }
     }
 
+    /**
+     * Validates a generic validation token. It checks the signature,
+     * expiration, and ensures the token type is 'VALIDATION'.
+     *
+     * @param token The validation token string to validate.
+     * @return {@code true} if the token is valid.
+     */
     public boolean validateValidationToken(String token) {
         try {
             Claims claims = parseClaims(token);
@@ -99,6 +158,16 @@ public class JwtTokenUtil {
         }
     }
 
+    /**
+     * Private helper method to generate a token with specified parameters.
+     *
+     * @param user The user entity.
+     * @param tokenVersion The token version.
+     * @param expiration The expiration duration in milliseconds.
+     * @param tokenType The type of token ("ACCESS" or "REFRESH").
+     * @return The generated JWT string.
+     * @throws AccessDeniedException if the user account is not active.
+     */
     private String generateToken(User user, Long tokenVersion, long expiration, String tokenType) {
         if (!user.getStatus().equals(AccountStatus.ACTIVE)) {
             throw new AccessDeniedException("User: " + user.getName() + "is not authorized in the system");
@@ -111,12 +180,12 @@ public class JwtTokenUtil {
             claims.put("userId", user.getId());
             claims.put("tokenVersion", tokenVersion);
             claims.put("tokenType", tokenType);
-            
+
             if ("ACCESS".equals(tokenType)) {
                 claims.put("name", user.getName());
                 claims.put("roles", user.getUserRoles().stream()
-                    .map(userRole -> userRole.getRole().getName())
-                    .collect(Collectors.toList()));
+                        .map(userRole -> userRole.getRole().getName())
+                        .collect(Collectors.toList()));
                 claims.put("status", user.getStatus().toString());
             }
 
@@ -134,7 +203,15 @@ public class JwtTokenUtil {
         }
     }
 
-    public boolean validateToken(String token) { // Apenas valida a assinatura e expiração
+    /**
+     * Validates the signature and expiration of a JWT. It does not check the
+     * token version or other claims.
+     *
+     * @param token The JWT string to validate.
+     * @return {@code true} if the token signature and expiration are valid,
+     * {@code false} otherwise.
+     */
+    public boolean validateToken(String token) {
         try {
             parseClaims(token);
             return true; // Se não lançar exceção, é válido
@@ -153,6 +230,12 @@ public class JwtTokenUtil {
         return false;
     }
 
+    /**
+     * Extracts the email (subject) from the JWT claims.
+     *
+     * @param token The JWT string.
+     * @return The user's email.
+     */
     public String getEmail(String token) {
         try {
             return parseClaims(token).getSubject();
@@ -162,6 +245,12 @@ public class JwtTokenUtil {
         }
     }
 
+    /**
+     * Extracts the user ID from the JWT claims.
+     *
+     * @param token The JWT string.
+     * @return The user's ID.
+     */
     public Long getUserId(String token) {
         try {
             Object userIdClaim = parseClaims(token).get("userId");
@@ -175,6 +264,12 @@ public class JwtTokenUtil {
         }
     }
 
+    /**
+     * Extracts the entity ID from a generic validation token's claims.
+     *
+     * @param token The JWT string.
+     * @return The entity's ID.
+     */
     public Long getEntityId(String token) {
         try {
             Object entityIdClaim = parseClaims(token).get("entityId");
@@ -188,6 +283,12 @@ public class JwtTokenUtil {
         }
     }
 
+    /**
+     * Extracts the user's name from the JWT claims.
+     *
+     * @param token The JWT string.
+     * @return The user's name, or {@code null} if not present.
+     */
     public String getUserName(String token) {
         try {
             return parseClaims(token).get("name", String.class);
@@ -197,6 +298,12 @@ public class JwtTokenUtil {
         }
     }
 
+    /**
+     * Extracts the user's roles from the JWT claims.
+     *
+     * @param token The JWT string.
+     * @return A list of role names.
+     */
     @SuppressWarnings("unchecked")
     public List<String> getRoles(String token) {
         try {
@@ -215,6 +322,12 @@ public class JwtTokenUtil {
         }
     }
 
+    /**
+     * Checks if the token is expired.
+     *
+     * @param token The JWT string.
+     * @return {@code true} if the token is expired, {@code false} otherwise.
+     */
     public boolean isTokenExpired(String token) {
         try {
             Date expiration = parseClaims(token).getExpiration();
@@ -224,6 +337,12 @@ public class JwtTokenUtil {
         }
     }
 
+    /**
+     * Calculates the remaining time in milliseconds before the token expires.
+     *
+     * @param token The JWT string.
+     * @return The remaining time in milliseconds, or 0 if expired or invalid.
+     */
     public long getTokenRemainingTime(String token) {
         try {
             Date expiration = parseClaims(token).getExpiration();
@@ -233,6 +352,12 @@ public class JwtTokenUtil {
         }
     }
 
+    /**
+     * Parses the JWT string and returns its claims.
+     *
+     * @param token The JWT string.
+     * @return The {@link Claims} object.
+     */
     private Claims parseClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSecretKey())
@@ -241,6 +366,12 @@ public class JwtTokenUtil {
                 .getBody();
     }
 
+    /**
+     * Decodes the Base64 secret key from properties and returns it as a
+     * {@link SecretKey}.
+     *
+     * @return The HMAC SHA secret key.
+     */
     private SecretKey getSecretKey() {
         try {
             byte[] keyBytes = Base64.getDecoder().decode(jwtProperties.getSecret());
@@ -251,8 +382,12 @@ public class JwtTokenUtil {
         }
     }
 
-    //------ TOKEN SERVICE --------------//
-
+    /**
+     * Extracts the token version from the JWT claims.
+     *
+     * @param token The JWT string.
+     * @return The token version number.
+     */
     public Long getTokenVersion(String token) {
         Object versionClaim = parseClaims(token).get("tokenVersion");
         if (versionClaim instanceof Integer integer) {
@@ -261,6 +396,12 @@ public class JwtTokenUtil {
         return parseClaims(token).get("tokenVersion", Long.class);
     }
 
+    /**
+     * Extracts the token version from a pre-parsed {@link Claims} object.
+     *
+     * @param claims The pre-parsed claims.
+     * @return The token version number.
+     */
     public Long getTokenVersionFromClaims(Claims claims) {
         Object versionClaim = claims.get("tokenVersion");
         if (versionClaim instanceof Integer integer) {

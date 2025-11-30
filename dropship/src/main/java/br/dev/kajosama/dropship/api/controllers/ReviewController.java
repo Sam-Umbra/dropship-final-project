@@ -25,13 +25,31 @@ import br.dev.kajosama.dropship.domain.model.entities.User;
 import br.dev.kajosama.dropship.domain.model.enums.ReviewSortBy;
 import jakarta.validation.Valid;
 
+/**
+ * REST controller for managing product reviews. Provides endpoints for
+ * creating, retrieving, updating, and deleting reviews for products.
+ *
+ * @author Sam_Umbra
+ */
 @RestController
 @RequestMapping("/product")
 public class ReviewController {
 
+    /**
+     * Service for handling review-related business logic.
+     */
     @Autowired
     private ReviewService reviewService;
 
+    /**
+     * Retrieves all reviews for a specific product, with optional sorting.
+     *
+     * @param productId The ID of the product whose reviews are to be retrieved.
+     * @param sortBy The sorting criteria for the reviews (e.g., NEWEST,
+     * HIGHEST_RATING). Defaults to NEWEST.
+     * @return A {@link ResponseEntity} containing a list of
+     * {@link ReviewResponse} objects.
+     */
     @GetMapping("/{productId}/reviews")
     public ResponseEntity<List<ReviewResponse>> getReviewsForProduct(@PathVariable Long productId,
             @RequestParam(name = "sort", defaultValue = "NEWEST") ReviewSortBy sortBy) {
@@ -42,6 +60,16 @@ public class ReviewController {
         return ResponseEntity.ok(reviews);
     }
 
+    /**
+     * Adds a new review to a product.
+     *
+     * @param productId The ID of the product to review.
+     * @param request The review content and rating.
+     * @param user The authenticated user posting the review, injected by Spring
+     * Security.
+     * @return A {@link ResponseEntity} containing the created
+     * {@link ReviewResponse} with a 201 Created status.
+     */
     @PostMapping("/{productId}/reviews")
     public ResponseEntity<ReviewResponse> saveReview(@PathVariable Long productId,
             @Valid @RequestBody ReviewRequest request, @AuthenticationPrincipal User user) {
@@ -50,18 +78,34 @@ public class ReviewController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    /**
+     * Deletes a review. The user can only delete their own reviews.
+     *
+     * @param reviewId The ID of the review to delete.
+     * @param user The authenticated user attempting to delete the review.
+     * @return A {@link ResponseEntity} with no content (204).
+     */
     @DeleteMapping("/reviews/{reviewId}")
     public ResponseEntity<Void> deleteReview(@PathVariable Long reviewId, @AuthenticationPrincipal User user) {
         reviewService.deleteReview(reviewId, user);
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Updates an existing review. The user can only update their own reviews.
+     *
+     * @param reviewId The ID of the review to update.
+     * @param user The authenticated user attempting to update the review.
+     * @param request The request payload with the updated review content.
+     * @return A {@link ResponseEntity} containing the updated
+     * {@link ReviewResponse}.
+     */
     @PatchMapping("/reviews/{reviewId}")
     public ResponseEntity<ReviewResponse> updateReview(@PathVariable Long reviewId, @AuthenticationPrincipal User user, @Valid @RequestBody ReviewUpdateRequest request) {
         return ResponseEntity.status(HttpStatus.OK).body(
-            ReviewResponse.fromEntity(
-                reviewService.updateReview(reviewId, request, user)
-            )
+                ReviewResponse.fromEntity(
+                        reviewService.updateReview(reviewId, request, user)
+                )
         );
     }
 

@@ -4,15 +4,30 @@ import java.util.Set;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 
+/**
+ * Represents the request payload for updating an existing product review.
+ *
+ * @author Sam_Umbra
+ * @param rating The updated rating for the product, from 0 to 5.
+ * @param comment The updated text content of the review.
+ * @param imageUrls The updated set of image URLs for the review.
+ */
 public record ReviewUpdateRequest(
-    @Min(0)
-    @Max(5)
-    Integer rating,
-    @NotBlank
-    String comment,
-    Set<String> imageUrls
-) {
+        /**
+         * The updated rating for the product, from 0 to 5.
+         */
+        @Min(0)
+        @Max(5)
+        Integer rating,
+        /**
+         * The updated text content of the review.
+         */
+        String comment,
+        /**
+         * The updated set of image URLs for the review.
+         */
+        Set<String> imageUrls
+        ) {
 
 }
